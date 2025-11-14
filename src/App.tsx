@@ -4,17 +4,18 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { JsonEditor } from "./components/editor/JsonEditor";
 import { DiagramCanvas } from "./components/diagram/DiagramCanvas";
 import { DetailsPanel } from "./components/sidepanel/DetailsPanel";
+
 import { parseLabJson } from "./core/parser";
 import { GraphNode, GraphEdge } from "./core/types";
 
 export const App: React.FC = () => {
-  const [jsonText, setJsonText] = useState<string>(""); // el editor ya pone el ejemplo
+  const [jsonText, setJsonText] = useState<string>("");
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
-  // UI: mostrar/ocultar paneles
+  // paneles UI
   const [showEditor, setShowEditor] = useState(true);
   const [showSidepanel, setShowSidepanel] = useState(true);
 
@@ -28,7 +29,9 @@ export const App: React.FC = () => {
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
     } catch {
-      // si hay error de parseo, simplemente no actualizamos el grafo
+      // si hay error de JSON, simplemente mostramos el error en consola
+      // pero no rompemos el diagrama actual
+      // console.error(err);
     }
   };
 
@@ -38,9 +41,6 @@ export const App: React.FC = () => {
         <JsonEditor
           value={jsonText}
           onChange={handleJsonChange}
-          onUseExample={() => {
-            // si ya tenías lógica para cargar el ejemplo, reutilízala aquí
-          }}
         />
       }
       diagram={

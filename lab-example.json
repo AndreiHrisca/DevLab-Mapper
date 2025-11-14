@@ -1,14 +1,4 @@
-// src/components/editor/JsonEditor.tsx
-import React, { useEffect, useRef } from "react";
-import Editor from "@monaco-editor/react";
-
-type JsonEditorProps = {
-  value: string;
-  onChange: (value: string) => void;
-};
-
-// Ejemplo por defecto (el que estabas usando)
-const DEFAULT_EXAMPLE = `{
+{
   "lab": {
     "name": "DevOps Lab - CI/CD + Artifact Repo",
     "description": "CI server with Bamboo agent, Nexus and shared libraries",
@@ -30,7 +20,6 @@ const DEFAULT_EXAMPLE = `{
       "id": "fsw-server-03",
       "label": "FSW-Server-03",
       "type": "machine",
-      "status": "running",
       "os": "Windows Server 2019",
       "role": "CI Server",
       "permissions": ["anhh", "anrv", "localadmin"],
@@ -58,7 +47,7 @@ const DEFAULT_EXAMPLE = `{
           "type": "container-tool",
           "version": "20.10.7",
           "description": "Docker Command Line Interface for container management",
-          "path": "C:\\\\Program Files\\\\Docker\\\\docker.exe",
+          "path": "C:\\Program Files\\Docker\\docker.exe",
           "source": {
             "packageManager": "manual-install",
             "downloadUrl": "https://www.docker.com/",
@@ -71,7 +60,7 @@ const DEFAULT_EXAMPLE = `{
           "type": "java-runtime",
           "version": "17.0.8",
           "description": "OpenJDK 17 Runtime Environment",
-          "path": "C:\\\\Program Files\\\\Java\\\\jdk-17",
+          "path": "C:\\Program Files\\Java\\jdk-17",
           "source": {
             "packageManager": "manual-install",
             "downloadUrl": "https://adoptium.net/",
@@ -109,7 +98,7 @@ const DEFAULT_EXAMPLE = `{
           },
           "logging": {
             "system": "loki",
-            "query": "{app=\\"bamboo-agent1\\"}"
+            "query": "{app=\"bamboo-agent1\"}"
           },
           "sla": {
             "criticality": "high",
@@ -122,7 +111,6 @@ const DEFAULT_EXAMPLE = `{
       "id": "nexus-server-01",
       "label": "nexus3.deimos-space.com",
       "type": "machine",
-      "status": "maintenance",
       "os": "Rocky Linux 9",
       "role": "Artifact Repository",
       "tags": ["on-prem", "nexus"],
@@ -172,7 +160,7 @@ const DEFAULT_EXAMPLE = `{
           },
           "logging": {
             "system": "loki",
-            "query": "{app=\\"nexus3\\"}"
+            "query": "{app=\"nexus3\"}"
           },
           "sla": {
             "criticality": "high",
@@ -228,124 +216,3 @@ const DEFAULT_EXAMPLE = `{
     }
   ]
 }
-`;
-
-export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange }) => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Cargar ejemplo al arrancar si no hay nada
-  useEffect(() => {
-    if (!value || value.trim() === "") {
-      onChange(DEFAULT_EXAMPLE);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleUseExample = () => {
-    onChange(DEFAULT_EXAMPLE);
-  };
-
-  const handleFileButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = String(ev.target?.result ?? "");
-      onChange(text);
-    };
-    reader.readAsText(file);
-    // reset input para poder cargar el mismo fichero otra vez si hace falta
-    e.target.value = "";
-  };
-
-  const handleEditorChange = (val?: string) => {
-    onChange(val ?? "");
-  };
-
-  return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        background: "#020617",
-        color: "#e5e7eb"
-      }}
-    >
-      {/* Header del panel */}
-      <div
-        style={{
-          padding: "10px 12px 6px 12px",
-          borderBottom: "1px solid #111827",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 600 }}>Lab JSON</div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={handleFileButtonClick}
-            style={{
-              fontSize: 11,
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px solid #4b5563",
-              background: "#020617",
-              color: "#e5e7eb",
-              cursor: "pointer"
-            }}
-          >
-            Cargar JSON
-          </button>
-          <button
-            onClick={handleUseExample}
-            style={{
-              fontSize: 11,
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px solid #4b5563",
-              background: "#0f172a",
-              color: "#e5e7eb",
-              cursor: "pointer"
-            }}
-          >
-            Usar ejemplo
-          </button>
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json,.json"
-          style={{ display: "none" }}
-          onChange={handleFileChange}
-        />
-      </div>
-
-      {/* Editor */}
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <Editor
-          height="100%"
-          defaultLanguage="json"
-          theme="vs-dark"
-          value={value}
-          onChange={handleEditorChange}
-          options={{
-            fontSize: 12,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            wordWrap: "on"
-          }}
-        />
-      </div>
-    </div>
-  );
-};

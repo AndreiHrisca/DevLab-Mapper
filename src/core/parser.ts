@@ -11,8 +11,8 @@ import {
 /**
  * Construye los GraphNode a partir de un MachineNodeJson.
  * - Crea un nodo "machine"
- * - Crea nodos "service" para cada servicio con host = machine.id
- * - Crea nodos "library" para cada librería con host = machine.id
+ * - Crea nodos "service" para cada servicio
+ * - Crea nodos "library" para cada librería
  */
 function buildNodesFromMachine(
   machine: MachineNodeJson,
@@ -59,8 +59,7 @@ function buildNodesFromMachine(
 }
 
 /**
- * Convierte los EdgeJson en GraphEdge, filtrando los que apunten
- * a nodos inexistentes (para no romper el diagrama).
+ * Construye edges válidos entre nodos existentes.
  */
 function buildGraphEdges(
   lab: LabJson,
@@ -70,7 +69,6 @@ function buildGraphEdges(
 
   for (const edge of lab.edges) {
     if (!validNodeIds.has(edge.from) || !validNodeIds.has(edge.to)) {
-      // Aquí podrías loguear un warning en consola si quieres
       console.warn(
         `[parser] Edge "${edge.id}" ignorado: from/to no existen`,
         edge
@@ -92,8 +90,7 @@ function buildGraphEdges(
 }
 
 /**
- * Función principal: recibe el JSON tal como lo has definido y lo
- * convierte en nodos y edges internos.
+ * Conversión principal del JSON a GraphNodes y GraphEdges.
  */
 export function buildGraphFromLabJson(lab: LabJson): {
   nodes: GraphNode[];
@@ -101,15 +98,22 @@ export function buildGraphFromLabJson(lab: LabJson): {
 } {
   const nodes: GraphNode[] = [];
 
-  // 1. Aplanar máquinas + servicios + librerías
+  // Aplanar máquinas + servicios + librerías
   lab.nodes.forEach((machine, index) => {
     const machineNodes = buildNodesFromMachine(machine, index);
     nodes.push(...machineNodes);
   });
 
-  // 2. Construir edges validando from/to
+  // Construir edges
   const nodeIds = new Set(nodes.map((n) => n.id));
   const edges = buildGraphEdges(lab, nodeIds);
 
   return { nodes, edges };
+}
+
+/**
+ * Alias simple para la UI.
+ */
+export function parseLabJson(raw: any) {
+  return buildGraphFromLabJson(raw as LabJson);
 }

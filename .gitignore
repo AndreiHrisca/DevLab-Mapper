@@ -1,0 +1,53 @@
+# ------------------------------
+# Node / Vite / Dependencies
+# ------------------------------
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# ------------------------------
+# Build output
+# ------------------------------
+dist/
+build/
+out/
+
+# ------------------------------
+# Vite cache
+# ------------------------------
+.vite/
+vite.config.*.timestamp-*
+
+# ------------------------------
+# Logs
+# ------------------------------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# ------------------------------
+# Editor configs
+# ------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ------------------------------
+# TypeScript
+# ------------------------------
+*.tsbuildinfo
+
+# ------------------------------
+# Local environment
+# ------------------------------
+.env
+.env.production
+.env.local
+.env.development
+.env.test

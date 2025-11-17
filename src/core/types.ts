@@ -1,6 +1,4 @@
-// src/core/types.ts
-
-// ---- Tipos del JSON original ----
+// ---- Original JSON Types ----
 
 export type LabInfo = {
   name: string;
@@ -85,7 +83,7 @@ export type LabJson = {
   edges: EdgeJson[];
 };
 
-// ---- Tipos internos del grafo ----
+// ---- Graph Internal types ----
 
 export type GraphNodeKind = "machine" | "service" | "library";
 
@@ -93,10 +91,10 @@ export type GraphNode = {
   id: string;
   label: string;
   kind: GraphNodeKind;
-  host?: string;          // machineId si es service/library
-  parentId?: string;      // para usar group nodes en React Flow
-  jsonRefPath: string;    // ej. "nodes[0].services[0]"
-  data: any;              // payload original (machine/service/library)
+  host?: string;
+  parentId?: string;
+  jsonRefPath: string;
+  data: any;
 };
 
 export type GraphEdge = {
@@ -105,5 +103,5 @@ export type GraphEdge = {
   to: string;
   kind: string;
   label?: string;
-  data?: any;             // meta original del edge
+  data?: any;
 };

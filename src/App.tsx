@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState } from "react";
 import { AppLayout } from "./components/layout/AppLayout";
 import { JsonEditor } from "./components/editor/JsonEditor";
@@ -14,8 +13,6 @@ export const App: React.FC = () => {
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-
-  // paneles UI
   const [showEditor, setShowEditor] = useState(true);
   const [showSidepanel, setShowSidepanel] = useState(true);
 
@@ -29,8 +26,6 @@ export const App: React.FC = () => {
       setSelectedNodeId(null);
       setSelectedEdgeId(null);
     } catch {
-      // si hay error de JSON, simplemente mostramos el error en consola
-      // pero no rompemos el diagrama actual
       // console.error(err);
     }
   };

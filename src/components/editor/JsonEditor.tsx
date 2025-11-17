@@ -302,7 +302,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange }) => {
               cursor: "pointer"
             }}
           >
-            Cargar JSON
+            Load JSON
           </button>
           <button
             onClick={handleUseExample}
@@ -316,7 +316,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange }) => {
               cursor: "pointer"
             }}
           >
-            Usar ejemplo
+            Use example
           </button>
         </div>
 

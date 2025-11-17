@@ -8,7 +8,7 @@ import ReactFlow, {
   Edge as RFEdge,
   Position,
   applyNodeChanges,
-  NodeChange          
+  NodeChange
 } from "reactflow";
 import "reactflow/dist/style.css";
 

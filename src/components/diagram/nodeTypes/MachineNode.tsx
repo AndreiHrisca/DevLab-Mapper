@@ -21,7 +21,7 @@ const statusPalette = {
     border: "#16a34a",
     headerBg:
       "linear-gradient(90deg,rgba(22,163,74,0.18),rgba(5,150,105,0.08))",
-    bodyBg: "rgba(236,253,245,0.2)", // 👈 semitransparente
+    bodyBg: "rgba(236,253,245,0.6)",
     shadow: "0 8px 18px rgba(22,163,74,0.25)",
     pillBg: "rgba(22,163,74,0.12)",
     pillColor: "#166534"
@@ -30,7 +30,7 @@ const statusPalette = {
     border: "#f59e0b",
     headerBg:
       "linear-gradient(90deg,rgba(245,158,11,0.18),rgba(251,191,36,0.10))",
-    bodyBg: "rgba(255,251,235,0.2)", // 👈
+    bodyBg: "rgba(255,251,235,0.6)",
     shadow: "0 8px 18px rgba(245,158,11,0.25)",
     pillBg: "rgba(245,158,11,0.18)",
     pillColor: "#92400e"
@@ -39,7 +39,7 @@ const statusPalette = {
     border: "#dc2626",
     headerBg:
       "linear-gradient(90deg,rgba(220,38,38,0.18),rgba(248,113,113,0.10))",
-    bodyBg: "rgba(254,242,242,0.2)", // 👈
+    bodyBg: "rgba(254,242,242,0.6)",
     shadow: "0 8px 18px rgba(220,38,38,0.28)",
     pillBg: "rgba(220,38,38,0.18)",
     pillColor: "#991b1b"
@@ -48,7 +48,7 @@ const statusPalette = {
     border: "#6b7280",
     headerBg:
       "linear-gradient(90deg,rgba(107,114,128,0.20),rgba(148,163,184,0.12))",
-    bodyBg: "rgba(243,244,246,0.2)", // 👈
+    bodyBg: "rgba(243,244,246,0.6)",
     shadow: "0 8px 18px rgba(31,41,55,0.22)",
     pillBg: "rgba(107,114,128,0.18)",
     pillColor: "#374151"
@@ -85,6 +85,30 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data }) => {
       ? "DELETED"
       : "DISABLED";
 
+  // estilos reutilizables para la "tabla"
+  const tableRowStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "46px 6px 1fr", // col label, col ":", col valor
+    alignItems: "baseline",
+    fontSize: 9,
+    padding: "1px 0"
+  };
+
+  const labelCellStyle: React.CSSProperties = {
+    fontWeight: 700
+  };
+
+  const colonCellStyle: React.CSSProperties = {
+    textAlign: "center",
+    opacity: 0.9
+  };
+
+  const valueCellStyle: React.CSSProperties = {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  };
+
   return (
     <div
       style={{
@@ -92,7 +116,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data }) => {
         height: "100%",
         borderRadius: 20,
         border: `2px solid ${palette.border}`,
-        backgroundColor: palette.bodyBg, // 👈 usamos backgroundColor semitransparente
+        backgroundColor: palette.bodyBg,
         boxShadow: palette.shadow,
         display: "flex",
         flexDirection: "column",
@@ -156,31 +180,34 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data }) => {
         {(os || ip || permissionsText) && (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              columnGap: 4,
-              rowGap: 2,
-              fontSize: 9,
+              marginTop: 4,
+              borderRadius: 6,
+              background: "rgba(255,255,255,0.45)",
+              border: `1px solid ${palette.border}33`,
+              padding: "4px 6px",
               color: "#065f46"
             }}
           >
             {os && (
-              <>
-                <span style={{ fontWeight: 600 }}>OS:</span>
-                <span>{os}</span>
-              </>
+              <div style={tableRowStyle}>
+                <span style={labelCellStyle}>OS</span>
+                <span style={colonCellStyle}>:</span>
+                <span style={valueCellStyle}>{os}</span>
+              </div>
             )}
             {ip && (
-              <>
-                <span style={{ fontWeight: 600 }}>IP:</span>
-                <span>{ip}</span>
-              </>
+              <div style={tableRowStyle}>
+                <span style={labelCellStyle}>IP</span>
+                <span style={colonCellStyle}>:</span>
+                <span style={valueCellStyle}>{ip}</span>
+              </div>
             )}
             {permissionsText && (
-              <>
-                <span style={{ fontWeight: 600 }}>Perms:</span>
-                <span>{permissionsText}</span>
-              </>
+              <div style={tableRowStyle}>
+                <span style={labelCellStyle}>Perms</span>
+                <span style={colonCellStyle}>:</span>
+                <span style={valueCellStyle}>{permissionsText}</span>
+              </div>
             )}
           </div>
         )}

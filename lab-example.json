@@ -1,35 +1,96 @@
 {
   "lab": {
-    "name": "DevOps Lab - CI/CD + Artifact Repo",
-    "description": "CI server with Bamboo agent, Nexus and shared libraries",
-    "version": "1.0",
+    "name": "DevOps Lab - CI/CD, Artifacts & Observability",
+    "description": "End-to-end CI/CD lab including Bamboo, Git, Nexus, Kubernetes, Observability and Security tooling",
+    "version": "2.0",
     "author": "Andrei Ionut Hrisca",
-    "updatedAt": "2024-06-10",
+    "updatedAt": "2024-10-01",
     "environment": "lab",
-    "domain": "CI/CD & Artifacts",
-    "tags": ["on-prem", "ci-cd", "demo"],
+    "domain": "CI/CD, Artifacts, Observability",
+    "tags": [
+      "on-prem",
+      "ci-cd",
+      "demo",
+      "kubernetes",
+      "observability",
+      "security"
+    ],
     "ownerTeam": "Platform Engineering",
     "links": {
-      "documentation": "https://confluence.example.com/devops-lab",
-      "runbook": "https://confluence.example.com/devops-lab-runbook",
-      "repo": "https://bitbucket.example.com/scm/devops/devops-lab-diagrams.git"
+      "documentation": "https://confluence.example.com/platform/devops-lab",
+      "runbook": "https://confluence.example.com/platform/devops-lab-runbook",
+      "repo": "https://bitbucket.example.com/scm/devops/devops-lab-diagrams.git",
+      "cmdb": "https://servicenow.example.com/cmdb/devops-lab",
+      "statusPage": "https://status.example.com/devops-lab"
+    },
+    "tooling": {
+      "configManagement": [
+        "ansible"
+      ],
+      "orchestration": [
+        "kubernetes",
+        "rke2"
+      ],
+      "monitoring": [
+        "prometheus",
+        "grafana"
+      ],
+      "logging": [
+        "loki"
+      ],
+      "tracing": [
+        "jaeger"
+      ],
+      "secrets": [
+        "hashicorp-vault"
+      ],
+      "authn": [
+        "keycloak"
+      ],
+      "artifactRepos": [
+        "nexus3"
+      ],
+      "scm": [
+        "bitbucket"
+      ]
+    },
+    "compliance": {
+      "standards": [
+        "ISO27001",
+        "SOC2-lab-scope"
+      ],
+      "dataClassification": "internal",
+      "drTier": "tier-3",
+      "rpoMinutes": 30,
+      "rtoMinutes": 120
     }
   },
   "nodes": [
     {
-      "id": "fsw-server-03",
-      "label": "FSW-Server-03",
+      "id": "fsw-server-01",
+      "label": "FSW-Server-01",
       "type": "machine",
+      "status": "running",
       "os": "Windows Server 2019",
       "role": "CI Server",
-      "permissions": ["anhh", "anrv", "localadmin"],
-      "tags": ["on-prem", "bamboo-agent"],
-      "fqdn": "FSW-Server-03.deimos-space.com",
-      "ip": "10.10.20.15",
+      "permissions": [
+        "anhh",
+        "anrv",
+        "localadmin",
+        "svc_bamboo"
+      ],
+      "tags": [
+        "on-prem",
+        "bamboo-agent",
+        "windows-ci"
+      ],
+      "fqdn": "FSW-Server-01.deimos-space.com",
+      "ip": "10.10.20.11",
       "location": {
         "datacenter": "MAD-DC1",
-        "rack": "R12",
-        "zone": "on-prem"
+        "rack": "R10",
+        "zone": "on-prem",
+        "environment": "lab"
       },
       "capacity": {
         "cpuCores": 8,
@@ -40,14 +101,28 @@
         "enabled": true,
         "policy": "daily-7d-retention"
       },
+      "patching": {
+        "osPatchWindow": "Sun-02:00-04:00",
+        "lastPatchedAt": "2024-09-10",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "Defender for Endpoint",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "anhh",
+          "anrv"
+        ]
+      },
       "libraries": [
         {
-          "id": "lib-docker-cli",
-          "label": "Docker CLI",
+          "id": "lib-docker-cli-win",
+          "label": "Docker CLI (Windows)",
           "type": "container-tool",
           "version": "20.10.7",
-          "description": "Docker Command Line Interface for container management",
-          "path": "C:\\Program Files\\Docker\\docker.exe",
+          "description": "Docker CLI for Windows-based container builds",
+          "path": "C:\\\\Program Files\\\\Docker\\\\docker.exe",
           "source": {
             "packageManager": "manual-install",
             "downloadUrl": "https://www.docker.com/",
@@ -55,26 +130,39 @@
           }
         },
         {
-          "id": "lib-jdk17",
-          "label": "OpenJDK 17",
+          "id": "lib-jdk17-win",
+          "label": "OpenJDK 17 (Win)",
           "type": "java-runtime",
           "version": "17.0.8",
-          "description": "OpenJDK 17 Runtime Environment",
-          "path": "C:\\Program Files\\Java\\jdk-17",
+          "description": "OpenJDK 17 Runtime Environment for Windows agents",
+          "path": "C:\\\\Program Files\\\\Java\\\\jdk-17",
           "source": {
             "packageManager": "manual-install",
             "downloadUrl": "https://adoptium.net/",
+            "managedBy": "ansible"
+          }
+        },
+        {
+          "id": "lib-git-win",
+          "label": "Git for Windows",
+          "type": "scm-client",
+          "version": "2.44.0",
+          "description": "Git command line client for Windows",
+          "path": "C:\\\\Program Files\\\\Git\\\\bin\\\\git.exe",
+          "source": {
+            "packageManager": "choco",
+            "downloadUrl": "https://git-scm.com/",
             "managedBy": "ansible"
           }
         }
       ],
       "services": [
         {
-          "id": "svc-bamboo-agent1",
-          "label": "Bamboo Agent 1",
+          "id": "svc-bamboo-agent-win-01",
+          "label": "Bamboo Agent Win 01",
           "type": "ci-agent",
           "version": "8.3.4",
-          "description": "Bamboo build agent for CI/CD pipelines",
+          "description": "Windows Bamboo build agent for CI/CD pipelines",
           "ports": [
             {
               "port": 8085,
@@ -88,17 +176,289 @@
           "deployment": {
             "method": "ansible",
             "playbook": "ansible/roles/bamboo-agent",
-            "pipelineId": "BAMBOO-PLAN-KEY"
+            "pipelineId": "BAMBOO-PLAN-WIN01"
           },
           "monitoring": {
-            "prometheusTarget": "fsw-server-03:9100",
+            "prometheusTarget": "fsw-server-01:9100",
             "dashboards": [
-              "https://grafana.example.com/d/bamboo-agent/bamboo-agent-overview"
+              "https://grafana.example.com/d/bamboo-agent/bamboo-agent-win01"
             ]
           },
           "logging": {
             "system": "loki",
-            "query": "{app=\"bamboo-agent1\"}"
+            "query": "{app=\"bamboo-agent-win-01\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fsw-server-02",
+      "label": "FSW-Server-02",
+      "type": "machine",
+      "status": "running",
+      "os": "Windows Server 2022",
+      "role": "Heavy CI Server",
+      "permissions": [
+        "anhh",
+        "anrv",
+        "localadmin",
+        "svc_bamboo"
+      ],
+      "tags": [
+        "on-prem",
+        "bamboo-agent",
+        "heavy-builds"
+      ],
+      "fqdn": "FSW-Server-02.deimos-space.com",
+      "ip": "10.10.20.12",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R11",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 16,
+        "ramGB": 64,
+        "diskGB": 1000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "daily-14d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sun-02:00-04:00",
+        "lastPatchedAt": "2024-09-15",
+        "pendingReboot": true
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "Defender for Endpoint",
+        "edrStatus": "needs-reboot",
+        "adminAccess": [
+          "anhh",
+          "anrv"
+        ]
+      },
+      "libraries": [
+        {
+          "id": "lib-docker-cli-win-2",
+          "label": "Docker CLI (Windows)",
+          "type": "container-tool",
+          "version": "24.0.2",
+          "description": "Newer Docker CLI for heavy builds",
+          "path": "C:\\\\Program Files\\\\Docker\\\\docker.exe",
+          "source": {
+            "packageManager": "manual-install",
+            "downloadUrl": "https://www.docker.com/",
+            "managedBy": "ansible"
+          }
+        },
+        {
+          "id": "lib-jdk21-win",
+          "label": "OpenJDK 21 (Win)",
+          "type": "java-runtime",
+          "version": "21.0.2",
+          "description": "OpenJDK 21 Runtime Environment for Windows agents",
+          "path": "C:\\\\Program Files\\\\Java\\\\jdk-21",
+          "source": {
+            "packageManager": "manual-install",
+            "downloadUrl": "https://adoptium.net/",
+            "managedBy": "ansible"
+          }
+        },
+        {
+          "id": "lib-node18-win",
+          "label": "Node.js 18 (Win)",
+          "type": "node-runtime",
+          "version": "18.19.0",
+          "description": "Node.js runtime for frontend builds",
+          "path": "C:\\\\Program Files\\\\nodejs",
+          "source": {
+            "packageManager": "choco",
+            "downloadUrl": "https://nodejs.org/",
+            "managedBy": "ansible"
+          }
+        }
+      ],
+      "services": [
+        {
+          "id": "svc-bamboo-agent-win-02",
+          "label": "Bamboo Agent Win 02",
+          "type": "ci-agent",
+          "version": "8.3.4",
+          "description": "Windows Bamboo build agent for heavy CI/CD pipelines",
+          "ports": [
+            {
+              "port": 8086,
+              "protocol": "HTTP",
+              "description": "Bamboo agent communication port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "CI/CD Team",
+          "repo": "https://bitbucket.example.com/scm/ci/bamboo-agent-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/bamboo-agent",
+            "pipelineId": "BAMBOO-PLAN-WIN02"
+          },
+          "monitoring": {
+            "prometheusTarget": "fsw-server-02:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/bamboo-agent/bamboo-agent-win02"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"bamboo-agent-win-02\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ci-linux-01",
+      "label": "CI-Linux-01",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Linux CI Server",
+      "permissions": [
+        "anhh",
+        "anrv",
+        "devops",
+        "svc_bamboo"
+      ],
+      "tags": [
+        "on-prem",
+        "bamboo-agent",
+        "linux-ci"
+      ],
+      "fqdn": "ci-linux-01.deimos-space.com",
+      "ip": "10.10.21.10",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R13",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 16,
+        "ramGB": 64,
+        "diskGB": 2000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "daily-14d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sat-01:00-03:00",
+        "lastPatchedAt": "2024-09-08",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "anhh",
+          "anrv",
+          "devops"
+        ]
+      },
+      "libraries": [
+        {
+          "id": "lib-docker-cli-linux",
+          "label": "Docker CLI (Linux)",
+          "type": "container-tool",
+          "version": "24.0.2",
+          "description": "Docker CLI for Linux-based builds",
+          "path": "/usr/bin/docker",
+          "source": {
+            "packageManager": "yum",
+            "downloadUrl": "https://www.docker.com/",
+            "managedBy": "ansible"
+          }
+        },
+        {
+          "id": "lib-podman-linux",
+          "label": "Podman",
+          "type": "container-tool",
+          "version": "4.9.0",
+          "description": "Podman for rootless container builds",
+          "path": "/usr/bin/podman",
+          "source": {
+            "packageManager": "yum",
+            "downloadUrl": "https://podman.io/",
+            "managedBy": "ansible"
+          }
+        },
+        {
+          "id": "lib-jdk17-linux",
+          "label": "OpenJDK 17 (Linux)",
+          "type": "java-runtime",
+          "version": "17.0.9",
+          "description": "OpenJDK 17 Runtime Environment",
+          "path": "/usr/lib/jvm/java-17-openjdk",
+          "source": {
+            "packageManager": "yum",
+            "downloadUrl": "https://adoptium.net/",
+            "managedBy": "ansible"
+          }
+        },
+        {
+          "id": "lib-node20-linux",
+          "label": "Node.js 20 (Linux)",
+          "type": "node-runtime",
+          "version": "20.11.0",
+          "description": "Node.js runtime for frontend builds on Linux",
+          "path": "/usr/bin/node",
+          "source": {
+            "packageManager": "nvm",
+            "downloadUrl": "https://nodejs.org/",
+            "managedBy": "ansible"
+          }
+        }
+      ],
+      "services": [
+        {
+          "id": "svc-bamboo-agent-linux-01",
+          "label": "Bamboo Agent Linux 01",
+          "type": "ci-agent",
+          "version": "8.3.4",
+          "description": "Linux Bamboo build agent for CI/CD pipelines",
+          "ports": [
+            {
+              "port": 8087,
+              "protocol": "HTTP",
+              "description": "Bamboo agent communication port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "CI/CD Team",
+          "repo": "https://bitbucket.example.com/scm/ci/bamboo-agent-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/bamboo-agent-linux",
+            "pipelineId": "BAMBOO-PLAN-LINUX01"
+          },
+          "monitoring": {
+            "prometheusTarget": "ci-linux-01:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/bamboo-agent/bamboo-agent-linux01"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"bamboo-agent-linux-01\"}"
           },
           "sla": {
             "criticality": "high",
@@ -111,31 +471,52 @@
       "id": "nexus-server-01",
       "label": "nexus3.deimos-space.com",
       "type": "machine",
+      "status": "running",
       "os": "Rocky Linux 9",
       "role": "Artifact Repository",
-      "tags": ["on-prem", "nexus"],
+      "tags": [
+        "on-prem",
+        "nexus",
+        "artifacts"
+      ],
       "fqdn": "nexus3.deimos-space.com",
       "ip": "10.10.30.20",
       "location": {
         "datacenter": "MAD-DC1",
         "rack": "R15",
-        "zone": "on-prem"
+        "zone": "on-prem",
+        "environment": "lab"
       },
       "capacity": {
         "cpuCores": 8,
         "ramGB": 32,
-        "diskGB": 2000
+        "diskGB": 4000
       },
       "backup": {
         "enabled": true,
-        "policy": "daily-30d-retention"
+        "policy": "hourly-24h-daily-30d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sat-03:00-05:00",
+        "lastPatchedAt": "2024-09-01",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "anhh",
+          "anrv",
+          "platform-eng"
+        ]
       },
       "services": [
         {
           "id": "svc-nexus",
           "label": "Nexus 3",
           "type": "artifact-repo",
-          "version": "3.x",
+          "version": "3.64.0",
           "description": "Nexus 3 artifact repository for Maven, npm and Docker",
           "ports": [
             {
@@ -143,6 +524,12 @@
               "protocol": "HTTPS",
               "description": "Docker/Artifacts endpoint",
               "exposed": true
+            },
+            {
+              "port": 8081,
+              "protocol": "HTTPS",
+              "description": "Nexus web UI",
+              "exposed": false
             }
           ],
           "ownerTeam": "Platform Engineering",
@@ -168,12 +555,1037 @@
           }
         }
       ]
+    },
+    {
+      "id": "nexus-server-02-dr",
+      "label": "nexus3-dr.deimos-space.com",
+      "type": "machine",
+      "status": "maintenance",
+      "os": "Rocky Linux 9",
+      "role": "Artifact Repository DR",
+      "tags": [
+        "on-prem",
+        "nexus",
+        "dr"
+      ],
+      "fqdn": "nexus3-dr.deimos-space.com",
+      "ip": "10.10.31.20",
+      "location": {
+        "datacenter": "MAD-DC2",
+        "rack": "R05",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 8,
+        "ramGB": 32,
+        "diskGB": 4000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "daily-30d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sun-03:00-05:00",
+        "lastPatchedAt": "2024-08-20",
+        "pendingReboot": true
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "needs-reboot",
+        "adminAccess": [
+          "platform-eng"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-nexus-dr",
+          "label": "Nexus 3 DR",
+          "type": "artifact-repo",
+          "version": "3.64.0",
+          "description": "Standby Nexus 3 replica for DR",
+          "ports": [
+            {
+              "port": 18161,
+              "protocol": "HTTPS",
+              "description": "DR Docker/Artifacts endpoint (standby)",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "Platform Engineering",
+          "repo": "https://bitbucket.example.com/scm/infra/nexus-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/nexus3-dr",
+            "pipelineId": "INFRA-NEXUS-DR-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "nexus3-dr.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/nexus/nexus-dr-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"nexus3-dr\"}"
+          },
+          "sla": {
+            "criticality": "medium",
+            "availabilityTarget": "99.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "git-server-01",
+      "label": "bitbucket.deimos-space.com",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "SCM Server",
+      "tags": [
+        "on-prem",
+        "bitbucket",
+        "git"
+      ],
+      "fqdn": "bitbucket.deimos-space.com",
+      "ip": "10.10.40.10",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R18",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 16,
+        "ramGB": 64,
+        "diskGB": 6000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "hourly-24h-daily-14d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sat-05:00-06:00",
+        "lastPatchedAt": "2024-09-05",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng",
+          "devops"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-bitbucket",
+          "label": "Bitbucket",
+          "type": "scm",
+          "version": "8.14.0",
+          "description": "Bitbucket Data Center instance",
+          "ports": [
+            {
+              "port": 7990,
+              "protocol": "HTTPS",
+              "description": "Bitbucket web UI",
+              "exposed": true
+            },
+            {
+              "port": 7999,
+              "protocol": "SSH",
+              "description": "Git over SSH",
+              "exposed": true
+            }
+          ],
+          "ownerTeam": "Platform Engineering",
+          "repo": "https://bitbucket.example.com/scm/infra/bitbucket-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/bitbucket",
+            "pipelineId": "INFRA-BB-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "bitbucket.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/bitbucket/bitbucket-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"bitbucket\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "keycloak-01",
+      "label": "keycloak.deimos-space.com",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Identity Provider",
+      "tags": [
+        "on-prem",
+        "keycloak",
+        "idp"
+      ],
+      "fqdn": "keycloak.deimos-space.com",
+      "ip": "10.10.40.20",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R19",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 8,
+        "ramGB": 32,
+        "diskGB": 500
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "daily-14d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sun-01:00-02:00",
+        "lastPatchedAt": "2024-09-07",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng",
+          "security-team"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-keycloak",
+          "label": "Keycloak",
+          "type": "idp",
+          "version": "22.0.1",
+          "description": "Keycloak Identity Provider for SSO/OIDC",
+          "ports": [
+            {
+              "port": 8443,
+              "protocol": "HTTPS",
+              "description": "Keycloak HTTPS endpoint",
+              "exposed": true
+            }
+          ],
+          "ownerTeam": "Security Team",
+          "repo": "https://bitbucket.example.com/scm/infra/keycloak-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/keycloak",
+            "pipelineId": "INFRA-KEYCLOAK-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "keycloak.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/keycloak/keycloak-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"keycloak\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kube-node-01",
+      "label": "SGF-KUBE-NODE-01",
+      "type": "k8s-node",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "control-plane",
+      "tags": [
+        "on-prem",
+        "kubernetes",
+        "control-plane"
+      ],
+      "fqdn": "sgf-kube-node-01.deimos-space.com",
+      "ip": "10.10.50.11",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R20",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 16,
+        "ramGB": 64,
+        "diskGB": 2000
+      },
+      "backup": {
+        "enabled": false,
+        "policy": "stateless-node"
+      },
+      "patching": {
+        "osPatchWindow": "Rolling",
+        "lastPatchedAt": "2024-08-30",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-kubelet-1",
+          "label": "Kubelet SGF-KUBE-NODE-01",
+          "type": "kubelet",
+          "version": "1.27.10",
+          "description": "Kubernetes node agent",
+          "ports": [
+            {
+              "port": 10250,
+              "protocol": "HTTPS",
+              "description": "Kubelet secure port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "Platform Engineering",
+          "repo": "https://bitbucket.example.com/scm/infra/kubernetes-node-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/kube-node",
+            "pipelineId": "INFRA-KUBE-NODE-1"
+          },
+          "monitoring": {
+            "prometheusTarget": "sgf-kube-node-01.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/kube-nodes/kube-nodes-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"kubelet-1\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kube-node-02",
+      "label": "SGF-KUBE-NODE-02",
+      "type": "k8s-node",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "control-plane",
+      "tags": [
+        "on-prem",
+        "kubernetes",
+        "control-plane"
+      ],
+      "fqdn": "sgf-kube-node-02.deimos-space.com",
+      "ip": "10.10.50.12",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R20",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 16,
+        "ramGB": 64,
+        "diskGB": 2000
+      },
+      "backup": {
+        "enabled": false,
+        "policy": "stateless-node"
+      },
+      "patching": {
+        "osPatchWindow": "Rolling",
+        "lastPatchedAt": "2024-08-30",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-kubelet-2",
+          "label": "Kubelet SGF-KUBE-NODE-02",
+          "type": "kubelet",
+          "version": "1.27.10",
+          "description": "Kubernetes node agent",
+          "ports": [
+            {
+              "port": 10250,
+              "protocol": "HTTPS",
+              "description": "Kubelet secure port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "Platform Engineering",
+          "repo": "https://bitbucket.example.com/scm/infra/kubernetes-node-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/kube-node",
+            "pipelineId": "INFRA-KUBE-NODE-2"
+          },
+          "monitoring": {
+            "prometheusTarget": "sgf-kube-node-02.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/kube-nodes/kube-nodes-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"kubelet-2\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kube-node-03",
+      "label": "SGF-KUBE-NODE-03",
+      "type": "k8s-node",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "worker",
+      "tags": [
+        "on-prem",
+        "kubernetes",
+        "worker"
+      ],
+      "fqdn": "sgf-kube-node-03.deimos-space.com",
+      "ip": "10.10.50.13",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R20",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 24,
+        "ramGB": 96,
+        "diskGB": 4000
+      },
+      "backup": {
+        "enabled": false,
+        "policy": "stateless-node"
+      },
+      "patching": {
+        "osPatchWindow": "Rolling",
+        "lastPatchedAt": "2024-08-30",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-kubelet-3",
+          "label": "Kubelet SGF-KUBE-NODE-03",
+          "type": "kubelet",
+          "version": "1.27.10",
+          "description": "Kubernetes node agent",
+          "ports": [
+            {
+              "port": 10250,
+              "protocol": "HTTPS",
+              "description": "Kubelet secure port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "Platform Engineering",
+          "repo": "https://bitbucket.example.com/scm/infra/kubernetes-node-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/kube-node",
+            "pipelineId": "INFRA-KUBE-NODE-3"
+          },
+          "monitoring": {
+            "prometheusTarget": "sgf-kube-node-03.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/kube-nodes/kube-nodes-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"kubelet-3\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kube-node-04",
+      "label": "SGF-KUBE-NODE-04",
+      "type": "k8s-node",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "worker",
+      "tags": [
+        "on-prem",
+        "kubernetes",
+        "worker"
+      ],
+      "fqdn": "sgf-kube-node-04.deimos-space.com",
+      "ip": "10.10.50.14",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R20",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 24,
+        "ramGB": 96,
+        "diskGB": 4000
+      },
+      "backup": {
+        "enabled": false,
+        "policy": "stateless-node"
+      },
+      "patching": {
+        "osPatchWindow": "Rolling",
+        "lastPatchedAt": "2024-08-30",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-kubelet-4",
+          "label": "Kubelet SGF-KUBE-NODE-04",
+          "type": "kubelet",
+          "version": "1.27.10",
+          "description": "Kubernetes node agent",
+          "ports": [
+            {
+              "port": 10250,
+              "protocol": "HTTPS",
+              "description": "Kubelet secure port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "Platform Engineering",
+          "repo": "https://bitbucket.example.com/scm/infra/kubernetes-node-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/kube-node",
+            "pipelineId": "INFRA-KUBE-NODE-4"
+          },
+          "monitoring": {
+            "prometheusTarget": "sgf-kube-node-04.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/kube-nodes/kube-nodes-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"kubelet-4\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "monitoring-01",
+      "label": "monitoring-01",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Monitoring",
+      "tags": [
+        "on-prem",
+        "prometheus",
+        "grafana"
+      ],
+      "fqdn": "monitoring-01.deimos-space.com",
+      "ip": "10.10.60.10",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R21",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 12,
+        "ramGB": 64,
+        "diskGB": 3000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "hourly-24h-daily-30d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sun-04:00-05:00",
+        "lastPatchedAt": "2024-09-03",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng",
+          "sre"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-prometheus",
+          "label": "Prometheus",
+          "type": "monitoring",
+          "version": "2.53.0",
+          "description": "Prometheus metrics collection",
+          "ports": [
+            {
+              "port": 9090,
+              "protocol": "HTTP",
+              "description": "Prometheus UI / API",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "SRE Team",
+          "repo": "https://bitbucket.example.com/scm/infra/monitoring-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/prometheus",
+            "pipelineId": "INFRA-PROM-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "monitoring-01.deimos-space.com:9090",
+            "dashboards": [
+              "https://grafana.example.com/d/prometheus/prometheus-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"prometheus\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        },
+        {
+          "id": "svc-grafana",
+          "label": "Grafana",
+          "type": "dashboards",
+          "version": "10.3.1",
+          "description": "Grafana dashboards for observability",
+          "ports": [
+            {
+              "port": 3000,
+              "protocol": "HTTPS",
+              "description": "Grafana web UI",
+              "exposed": true
+            }
+          ],
+          "ownerTeam": "SRE Team",
+          "repo": "https://bitbucket.example.com/scm/infra/monitoring-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/grafana",
+            "pipelineId": "INFRA-GRAFANA-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "monitoring-01.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/grafana/grafana-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"grafana\"}"
+          },
+          "sla": {
+            "criticality": "medium",
+            "availabilityTarget": "99.5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "logging-01",
+      "label": "logging-01",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Logging",
+      "tags": [
+        "on-prem",
+        "loki",
+        "logging"
+      ],
+      "fqdn": "logging-01.deimos-space.com",
+      "ip": "10.10.60.20",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R22",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 16,
+        "ramGB": 64,
+        "diskGB": 6000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "hourly-24h-daily-30d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sun-05:00-06:00",
+        "lastPatchedAt": "2024-09-04",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng",
+          "sre"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-loki",
+          "label": "Loki",
+          "type": "logging",
+          "version": "2.9.0",
+          "description": "Central Loki log aggregation cluster",
+          "ports": [
+            {
+              "port": 3100,
+              "protocol": "HTTP",
+              "description": "Loki API",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "SRE Team",
+          "repo": "https://bitbucket.example.com/scm/infra/logging-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/loki",
+            "pipelineId": "INFRA-LOKI-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "logging-01.deimos-space.com:3100",
+            "dashboards": [
+              "https://grafana.example.com/d/loki/loki-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"loki\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mq-01",
+      "label": "mq-01",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Message Queue",
+      "tags": [
+        "on-prem",
+        "rabbitmq"
+      ],
+      "fqdn": "mq-01.deimos-space.com",
+      "ip": "10.10.70.10",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R23",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 8,
+        "ramGB": 32,
+        "diskGB": 2000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "daily-14d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sat-04:00-05:00",
+        "lastPatchedAt": "2024-09-09",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng",
+          "sre"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-rabbitmq",
+          "label": "RabbitMQ",
+          "type": "message-queue",
+          "version": "3.13",
+          "description": "RabbitMQ broker for async jobs and events",
+          "ports": [
+            {
+              "port": 5672,
+              "protocol": "AMQP",
+              "description": "AMQP message broker",
+              "exposed": false
+            },
+            {
+              "port": 15672,
+              "protocol": "HTTPS",
+              "description": "RabbitMQ management UI",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "SRE Team",
+          "repo": "https://bitbucket.example.com/scm/infra/mq-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/rabbitmq",
+            "pipelineId": "INFRA-RMQ-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "mq-01.deimos-space.com:9100",
+            "dashboards": [
+              "https://grafana.example.com/d/rabbitmq/rabbitmq-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"rabbitmq\"}"
+          },
+          "sla": {
+            "criticality": "medium",
+            "availabilityTarget": "99.5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "db-01",
+      "label": "db-01",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Database",
+      "tags": [
+        "on-prem",
+        "postgresql"
+      ],
+      "fqdn": "db-01.deimos-space.com",
+      "ip": "10.10.80.10",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R24",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 24,
+        "ramGB": 128,
+        "diskGB": 8000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "hourly-24h-daily-30d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sun-06:00-07:00",
+        "lastPatchedAt": "2024-09-02",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "platform-eng",
+          "dba"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-postgres",
+          "label": "PostgreSQL",
+          "type": "database",
+          "version": "15.6",
+          "description": "Shared PostgreSQL cluster for CI tools",
+          "ports": [
+            {
+              "port": 5432,
+              "protocol": "TCP",
+              "description": "PostgreSQL database port",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "DBA Team",
+          "repo": "https://bitbucket.example.com/scm/infra/db-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/postgres",
+            "pipelineId": "INFRA-POSTGRES-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "db-01.deimos-space.com:9187",
+            "dashboards": [
+              "https://grafana.example.com/d/postgres/postgres-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"postgres\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
+    },
+    {
+      "id": "vault-01",
+      "label": "vault-01",
+      "type": "machine",
+      "status": "running",
+      "os": "Rocky Linux 9",
+      "role": "Secrets Management",
+      "tags": [
+        "on-prem",
+        "vault",
+        "secrets"
+      ],
+      "fqdn": "vault-01.deimos-space.com",
+      "ip": "10.10.90.10",
+      "location": {
+        "datacenter": "MAD-DC1",
+        "rack": "R25",
+        "zone": "on-prem",
+        "environment": "lab"
+      },
+      "capacity": {
+        "cpuCores": 8,
+        "ramGB": 32,
+        "diskGB": 2000
+      },
+      "backup": {
+        "enabled": true,
+        "policy": "daily-30d-retention"
+      },
+      "patching": {
+        "osPatchWindow": "Sat-06:00-07:00",
+        "lastPatchedAt": "2024-09-06",
+        "pendingReboot": false
+      },
+      "security": {
+        "localFirewall": true,
+        "edrAgent": "CrowdStrike",
+        "edrStatus": "healthy",
+        "adminAccess": [
+          "security-team",
+          "platform-eng"
+        ]
+      },
+      "services": [
+        {
+          "id": "svc-vault",
+          "label": "HashiCorp Vault",
+          "type": "secrets",
+          "version": "1.16.0",
+          "description": "Vault secrets management cluster",
+          "ports": [
+            {
+              "port": 8200,
+              "protocol": "HTTPS",
+              "description": "Vault API",
+              "exposed": false
+            }
+          ],
+          "ownerTeam": "Security Team",
+          "repo": "https://bitbucket.example.com/scm/infra/vault-config.git",
+          "deployment": {
+            "method": "ansible",
+            "playbook": "ansible/roles/vault",
+            "pipelineId": "INFRA-VAULT-DEPLOY"
+          },
+          "monitoring": {
+            "prometheusTarget": "vault-01.deimos-space.com:8200",
+            "dashboards": [
+              "https://grafana.example.com/d/vault/vault-overview"
+            ]
+          },
+          "logging": {
+            "system": "loki",
+            "query": "{app=\"vault\"}"
+          },
+          "sla": {
+            "criticality": "high",
+            "availabilityTarget": "99.9"
+          }
+        }
+      ]
     }
   ],
   "edges": [
     {
-      "id": "net-bamboo-to-nexus",
-      "from": "svc-bamboo-agent1",
+      "id": "net-bamboo-win01-to-nexus",
+      "from": "svc-bamboo-agent-win-01",
       "to": "svc-nexus",
       "kind": "communicates_with",
       "label": "publish artifacts",
@@ -184,7 +1596,7 @@
         "network": {
           "sourceSubnet": "10.10.20.0/24",
           "targetSubnet": "10.10.30.0/24",
-          "firewallRule": "FW-CI-TO-NEXUS-HTTPS"
+          "firewallRule": "FW-CIWIN01-TO-NEXUS-HTTPS"
         },
         "security": {
           "auth": "basic-auth",
@@ -194,24 +1606,971 @@
       }
     },
     {
-      "id": "dep-bamboo-docker",
-      "from": "svc-bamboo-agent1",
-      "to": "lib-docker-cli",
-      "kind": "depends_on",
-      "label": "docker builds",
+      "id": "net-bamboo-win02-to-nexus",
+      "from": "svc-bamboo-agent-win-02",
+      "to": "svc-nexus",
+      "kind": "communicates_with",
+      "label": "publish artifacts",
       "meta": {
-        "reason": "Required for Docker-based build jobs"
+        "protocol": "HTTPS",
+        "port": 18161,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.20.0/24",
+          "targetSubnet": "10.10.30.0/24",
+          "firewallRule": "FW-CIWIN02-TO-NEXUS-HTTPS"
+        },
+        "security": {
+          "auth": "basic-auth",
+          "tls": "internal-ca",
+          "sensitiveData": false
+        }
       }
     },
     {
-      "id": "dep-bamboo-jdk",
-      "from": "svc-bamboo-agent1",
-      "to": "lib-jdk17",
+      "id": "net-bamboo-linux01-to-nexus",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "svc-nexus",
+      "kind": "communicates_with",
+      "label": "publish artifacts",
+      "meta": {
+        "protocol": "HTTPS",
+        "port": 18161,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.21.0/24",
+          "targetSubnet": "10.10.30.0/24",
+          "firewallRule": "FW-CILINUX01-TO-NEXUS-HTTPS"
+        },
+        "security": {
+          "auth": "basic-auth",
+          "tls": "internal-ca",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "net-bamboo-win01-to-bitbucket",
+      "from": "svc-bamboo-agent-win-01",
+      "to": "svc-bitbucket",
+      "kind": "communicates_with",
+      "label": "clone repos",
+      "meta": {
+        "protocol": "HTTPS",
+        "port": 7990,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.20.0/24",
+          "targetSubnet": "10.10.40.0/24",
+          "firewallRule": "FW-CIWIN01-TO-BB-HTTPS"
+        },
+        "security": {
+          "auth": "oauth2",
+          "tls": "internal-ca",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "net-bamboo-win02-to-bitbucket",
+      "from": "svc-bamboo-agent-win-02",
+      "to": "svc-bitbucket",
+      "kind": "communicates_with",
+      "label": "clone repos",
+      "meta": {
+        "protocol": "HTTPS",
+        "port": 7990,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.20.0/24",
+          "targetSubnet": "10.10.40.0/24",
+          "firewallRule": "FW-CIWIN02-TO-BB-HTTPS"
+        },
+        "security": {
+          "auth": "oauth2",
+          "tls": "internal-ca",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "net-bamboo-linux01-to-bitbucket",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "svc-bitbucket",
+      "kind": "communicates_with",
+      "label": "clone repos",
+      "meta": {
+        "protocol": "SSH",
+        "port": 7999,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.21.0/24",
+          "targetSubnet": "10.10.40.0/24",
+          "firewallRule": "FW-CILINUX01-TO-BB-SSH"
+        },
+        "security": {
+          "auth": "ssh-key",
+          "tls": "none",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "net-bamboo-win01-to-vault",
+      "from": "svc-bamboo-agent-win-01",
+      "to": "svc-vault",
+      "kind": "communicates_with",
+      "label": "retrieve secrets",
+      "meta": {
+        "protocol": "HTTPS",
+        "port": 8200,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.20.0/24",
+          "targetSubnet": "10.10.90.0/24",
+          "firewallRule": "FW-CIWIN01-TO-VAULT-HTTPS"
+        },
+        "security": {
+          "auth": "jwt",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "net-bamboo-linux01-to-vault",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "svc-vault",
+      "kind": "communicates_with",
+      "label": "retrieve secrets",
+      "meta": {
+        "protocol": "HTTPS",
+        "port": 8200,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.21.0/24",
+          "targetSubnet": "10.10.90.0/24",
+          "firewallRule": "FW-CILINUX01-TO-VAULT-HTTPS"
+        },
+        "security": {
+          "auth": "approle",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "net-bitbucket-to-postgres",
+      "from": "svc-bitbucket",
+      "to": "svc-postgres",
+      "kind": "communicates_with",
+      "label": "store metadata",
+      "meta": {
+        "protocol": "TCP",
+        "port": 5432,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.40.0/24",
+          "targetSubnet": "10.10.80.0/24",
+          "firewallRule": "FW-BB-TO-DB-POSTGRES"
+        },
+        "security": {
+          "auth": "password",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "net-nexus-to-postgres",
+      "from": "svc-nexus",
+      "to": "svc-postgres",
+      "kind": "communicates_with",
+      "label": "store metadata",
+      "meta": {
+        "protocol": "TCP",
+        "port": 5432,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.30.0/24",
+          "targetSubnet": "10.10.80.0/24",
+          "firewallRule": "FW-NEXUS-TO-DB-POSTGRES"
+        },
+        "security": {
+          "auth": "password",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "net-keycloak-to-postgres",
+      "from": "svc-keycloak",
+      "to": "svc-postgres",
+      "kind": "communicates_with",
+      "label": "store identities",
+      "meta": {
+        "protocol": "TCP",
+        "port": 5432,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.40.0/24",
+          "targetSubnet": "10.10.80.0/24",
+          "firewallRule": "FW-KEYCLOAK-TO-DB-POSTGRES"
+        },
+        "security": {
+          "auth": "password",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "mon-prom-1",
+      "from": "svc-prometheus",
+      "to": "svc-bamboo-agent-win-01",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-2",
+      "from": "svc-prometheus",
+      "to": "svc-bamboo-agent-win-02",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-3",
+      "from": "svc-prometheus",
+      "to": "svc-bamboo-agent-linux-01",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-4",
+      "from": "svc-prometheus",
+      "to": "svc-nexus",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-5",
+      "from": "svc-prometheus",
+      "to": "svc-nexus-dr",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-6",
+      "from": "svc-prometheus",
+      "to": "svc-bitbucket",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-7",
+      "from": "svc-prometheus",
+      "to": "svc-keycloak",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-8",
+      "from": "svc-prometheus",
+      "to": "svc-postgres",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-9",
+      "from": "svc-prometheus",
+      "to": "svc-rabbitmq",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-10",
+      "from": "svc-prometheus",
+      "to": "svc-vault",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-11",
+      "from": "svc-prometheus",
+      "to": "svc-kubelet-1",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-12",
+      "from": "svc-prometheus",
+      "to": "svc-kubelet-2",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-13",
+      "from": "svc-prometheus",
+      "to": "svc-kubelet-3",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-14",
+      "from": "svc-prometheus",
+      "to": "svc-kubelet-4",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "mon-prom-15",
+      "from": "svc-prometheus",
+      "to": "svc-loki",
+      "kind": "scrapes_metrics",
+      "label": "scrapes metrics",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 9100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.60.0/24",
+          "targetSubnet": "10.10.0.0/16",
+          "firewallRule": "FW-PROM-TO-NODES-METRICS"
+        },
+        "security": {
+          "auth": "none",
+          "tls": "none",
+          "sensitiveData": false
+        }
+      }
+    },
+    {
+      "id": "log-1",
+      "from": "svc-bamboo-agent-win-01",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-2",
+      "from": "svc-bamboo-agent-win-02",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-3",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-4",
+      "from": "svc-nexus",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-5",
+      "from": "svc-nexus-dr",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-6",
+      "from": "svc-bitbucket",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-7",
+      "from": "svc-keycloak",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-8",
+      "from": "svc-postgres",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-9",
+      "from": "svc-rabbitmq",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-10",
+      "from": "svc-vault",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-11",
+      "from": "svc-kubelet-1",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-12",
+      "from": "svc-kubelet-2",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-13",
+      "from": "svc-kubelet-3",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "log-14",
+      "from": "svc-kubelet-4",
+      "to": "svc-loki",
+      "kind": "sends_logs",
+      "label": "sends logs",
+      "meta": {
+        "protocol": "HTTP",
+        "port": 3100,
+        "direction": "outbound",
+        "network": {
+          "sourceSubnet": "10.10.0.0/16",
+          "targetSubnet": "10.10.60.0/24",
+          "firewallRule": "FW-NODES-TO-LOKI"
+        },
+        "security": {
+          "auth": "tenant-id",
+          "tls": "internal-ca",
+          "sensitiveData": true
+        }
+      }
+    },
+    {
+      "id": "dep-bamboo-win01-docker",
+      "from": "svc-bamboo-agent-win-01",
+      "to": "lib-docker-cli-win",
+      "kind": "depends_on",
+      "label": "docker builds",
+      "meta": {
+        "reason": "Required for Docker-based build jobs",
+        "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-win01-jdk",
+      "from": "svc-bamboo-agent-win-01",
+      "to": "lib-jdk17-win",
       "kind": "depends_on",
       "label": "runs on JDK 17",
       "meta": {
         "reason": "Agent runtime",
         "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-win01-git",
+      "from": "svc-bamboo-agent-win-01",
+      "to": "lib-git-win",
+      "kind": "depends_on",
+      "label": "git client",
+      "meta": {
+        "reason": "Clone repositories",
+        "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-win02-docker",
+      "from": "svc-bamboo-agent-win-02",
+      "to": "lib-docker-cli-win-2",
+      "kind": "depends_on",
+      "label": "docker builds",
+      "meta": {
+        "reason": "Required for heavy Docker-based build jobs",
+        "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-win02-jdk",
+      "from": "svc-bamboo-agent-win-02",
+      "to": "lib-jdk21-win",
+      "kind": "depends_on",
+      "label": "runs on JDK 21",
+      "meta": {
+        "reason": "Agent runtime",
+        "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-win02-node",
+      "from": "svc-bamboo-agent-win-02",
+      "to": "lib-node18-win",
+      "kind": "depends_on",
+      "label": "node runtime",
+      "meta": {
+        "reason": "Frontend builds",
+        "mandatory": false
+      }
+    },
+    {
+      "id": "dep-bamboo-linux01-docker",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "lib-docker-cli-linux",
+      "kind": "depends_on",
+      "label": "docker builds",
+      "meta": {
+        "reason": "Required for Docker-based build jobs",
+        "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-linux01-podman",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "lib-podman-linux",
+      "kind": "depends_on",
+      "label": "podman builds",
+      "meta": {
+        "reason": "Rootless container builds",
+        "mandatory": false
+      }
+    },
+    {
+      "id": "dep-bamboo-linux01-jdk",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "lib-jdk17-linux",
+      "kind": "depends_on",
+      "label": "runs on JDK 17",
+      "meta": {
+        "reason": "Agent runtime",
+        "mandatory": true
+      }
+    },
+    {
+      "id": "dep-bamboo-linux01-node",
+      "from": "svc-bamboo-agent-linux-01",
+      "to": "lib-node20-linux",
+      "kind": "depends_on",
+      "label": "node runtime",
+      "meta": {
+        "reason": "Frontend builds",
+        "mandatory": false
       }
     }
   ]

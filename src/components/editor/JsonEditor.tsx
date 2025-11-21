@@ -4,6 +4,7 @@ import Editor from "@monaco-editor/react";
 
 type JsonEditorProps = {
   value: string;
+  errorMessage?: string;
   onChange: (value: string) => void;
 };
 
@@ -189,6 +190,10 @@ const DEFAULT_EXAMPLE = `{
       "to": "svc-nexus",
       "kind": "communicates_with",
       "label": "publish artifacts",
+      "color": "#10b981",
+      "bend": 50,
+      "curveOffset": { "x": -12 },
+      "labelOffset": { "y": -22 },
       "meta": {
         "protocol": "HTTPS",
         "port": 18161,
@@ -211,6 +216,10 @@ const DEFAULT_EXAMPLE = `{
       "to": "lib-docker-cli",
       "kind": "depends_on",
       "label": "docker builds",
+      "color": "#f97316",
+      "bend": -30,
+      "curveOffset": { "y": -10 },
+      "labelOffset": { "y": 18 },
       "meta": {
         "reason": "Required for Docker-based build jobs"
       }
@@ -221,6 +230,10 @@ const DEFAULT_EXAMPLE = `{
       "to": "lib-jdk17",
       "kind": "depends_on",
       "label": "runs on JDK 17",
+      "color": "#6366f1",
+      "bend": 0,
+      "curveOffset": { "x": 20 },
+      "labelOffset": { "x": 16 },
       "meta": {
         "reason": "Agent runtime",
         "mandatory": true
@@ -230,7 +243,11 @@ const DEFAULT_EXAMPLE = `{
 }
 `;
 
-export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange }) => {
+export const JsonEditor: React.FC<JsonEditorProps> = ({
+  value,
+  errorMessage,
+  onChange
+}) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cargar ejemplo al arrancar si no hay nada
@@ -284,10 +301,27 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange }) => {
           borderBottom: "1px solid #111827",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          gap: 8
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 600 }}>Lab JSON</div>
+
+        {errorMessage && (
+          <div
+            style={{
+              fontSize: 11,
+              color: "#fca5a5",
+              background: "rgba(248,113,113,0.08)",
+              border: "1px solid rgba(248,113,113,0.4)",
+              borderRadius: 8,
+              padding: "4px 10px",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {errorMessage}
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 8 }}>
           <button

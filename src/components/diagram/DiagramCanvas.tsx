@@ -8,20 +8,33 @@ import ReactFlow, {
   Edge as RFEdge,
   Position,
   applyNodeChanges,
-  NodeChange
+  NodeChange,
+  MarkerType
 } from "reactflow";
 import "reactflow/dist/style.css";
 
-import { GraphNode, GraphEdge } from "../../core/types";
+import {
+  GraphNode,
+  GraphEdge,
+  EdgeAdjustments,
+  EdgeAdjustment
+} from "../../core/types";
 import { MachineNode } from "./nodeTypes/MachineNode";
 import { ServiceNode } from "./nodeTypes/ServiceNode";
 import { LibraryNode } from "./nodeTypes/LibraryNode";
+import { AdjustableEdge } from "./edgeTypes/AdjustableEdge";
 
 import dagre from "dagre";
 
 type DiagramCanvasProps = {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  edgeAdjustments: EdgeAdjustments;
+  nodeAdjustments: Record<string, { width?: number; height?: number }>;
+  nodePositions: Record<string, { x: number; y: number }>;
+  onNodeAdjust: (nodeId: string, adjustment: { width?: number; height?: number }) => void;
+  onEdgeAdjust: (edgeId: string, adjustment: EdgeAdjustment) => void;
+  onNodesMove: (positions: Record<string, { x: number; y: number }>) => void;
   onNodeSelect: (id: string | null) => void;
   onEdgeSelect: (id: string | null) => void;
 };
@@ -32,18 +45,50 @@ const nodeTypes = {
   library: LibraryNode
 };
 
-// Config de Dagre sólo para las máquinas
+const edgeTypes = {
+  adjustable: AdjustableEdge
+};
+
+// -----------------------------------------------------------------------------
+// Layout constants
+
 const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
-const MACHINE_WIDTH = 280;
+const MACHINE_WIDTH = 420;
 
-// Hemos aumentado todo esto para dar más aire
-const SERVICE_HEIGHT = 70;
-const LIB_HEIGHT = 30;
-const HEADER_HEIGHT = 72;
-const VERTICAL_PADDING = 24;
-const GAP = 10;
-const LIB_COL_WIDTH = 120;
+// Estas alturas deben aproximarse a lo que dibuja MachineNode en el header
+const HEADER_HEIGHT = 40;
+const META_HEIGHT = 90;
+
+// padding vertical del cuerpo respecto al borde de la máquina
+const BODY_VERTICAL_PADDING = 10;
+
+// offset extra para bajar todo el bloque Services/Libs
+const BODY_EXTRA_OFFSET = 12;
+
+// Alturas “útiles” para cada nodo interno
+const SERVICE_HEIGHT = 80;
+const LIB_HEIGHT = 70;
+const GAP = 6;
+
+// espacio dentro del frame (parte superior/inferior)
+const SERVICES_BOX_PADDING_TOP = 18;
+const SERVICES_BOX_PADDING_BOTTOM = 10;
+const LIBS_BOX_PADDING_TOP = 18;
+const LIBS_BOX_PADDING_BOTTOM = 10;
+
+// desplazamiento del contenido respecto al título "SERVICES"/"LIBRARIES"
+const LABEL_OFFSET = 28;
+
+// layout horizontal
+const COLUMN_GAP = 12;
+const HORIZONTAL_PADDING = 16;
+
+// margen horizontal interno extra para que las tarjetas no “rocen” el borde
+const NODE_INNER_MARGIN_X = 22;
+
+// -----------------------------------------------------------------------------
+// Dagre sólo para las máquinas
 
 function layoutMachines(
   machines: RFNode[],
@@ -51,13 +96,13 @@ function layoutMachines(
 ): RFNode[] {
   dagreGraph.setGraph({
     rankdir: "TB",
-    nodesep: 80,
-    ranksep: 160
+    nodesep: 120,
+    ranksep: 190
   });
 
   machines.forEach((m) => {
     const width = (m.style as any)?.width ?? MACHINE_WIDTH;
-    const height = (m.style as any)?.height ?? 200;
+    const height = (m.style as any)?.height ?? 260;
     dagreGraph.setNode(m.id, { width, height });
   });
 
@@ -73,22 +118,29 @@ function layoutMachines(
       ...m,
       position: {
         x: pos.x - ((m.style as any)?.width ?? MACHINE_WIDTH) / 2,
-        y: pos.y - ((m.style as any)?.height ?? 200) / 2
+        y: pos.y - ((m.style as any)?.height ?? 260) / 2
       },
-      sourcePosition: Position.Bottom,
-      targetPosition: Position.Top
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left
     };
   });
 }
 
+// -----------------------------------------------------------------------------
+
 export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
   nodes,
   edges,
+  edgeAdjustments,
+  nodeAdjustments,
+  onNodeAdjust,
+  nodePositions,
+  onNodesMove,
+  onEdgeAdjust,
   onNodeSelect,
   onEdgeSelect
 }) => {
-  // 1) Calculamos layout base (Dagre) cuando cambian nodes/edges del parser
-  const { layoutNodes, layoutEdges } = useMemo(() => {
+  const layoutNodes = useMemo(() => {
     const machines = nodes.filter((n) => n.kind === "machine");
     const services = nodes.filter((n) => n.kind === "service");
     const libraries = nodes.filter((n) => n.kind === "library");
@@ -108,67 +160,108 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
       libsByMachine.get(l.host)!.push(l);
     });
 
-    // 1) Machines como contenedores
+    // ----------------- 1) Máquinas como contenedores ------------------------
     const machineNodes: RFNode[] = machines.map((m) => {
       const svc = servicesByMachine.get(m.id) ?? [];
       const libs = libsByMachine.get(m.id) ?? [];
 
+      const manualSize = nodeAdjustments[m.id] ?? {};
+
       const svcCount = svc.length;
       const libCount = libs.length;
 
-      // libs en 2 columnas → nº filas
-      const libRows = libCount === 0 ? 0 : Math.ceil(libCount / 2);
-
-      const servicesHeight =
+      const servicesUsefulHeight =
         svcCount > 0
           ? svcCount * SERVICE_HEIGHT + Math.max(svcCount - 1, 0) * GAP
           : 0;
 
-      const libsHeight =
-        libRows > 0 ? libRows * LIB_HEIGHT + Math.max(libRows - 1, 0) * GAP : 0;
+      const libsUsefulHeight =
+        libCount > 0
+          ? libCount * LIB_HEIGHT + Math.max(libCount - 1, 0) * GAP
+          : 0;
 
-      // Más espacio entre services y libs
-      const separatorGap = svcCount > 0 && libCount > 0 ? 40 : 0;
+      const servicesBoxHeight =
+        svcCount > 0
+          ? SERVICES_BOX_PADDING_TOP +
+            LABEL_OFFSET +
+            servicesUsefulHeight +
+            SERVICES_BOX_PADDING_BOTTOM
+          : 0;
+
+      const libsBoxHeight =
+        libCount > 0
+          ? LIBS_BOX_PADDING_TOP +
+            LABEL_OFFSET +
+            libsUsefulHeight +
+            LIBS_BOX_PADDING_BOTTOM
+          : 0;
+
+      const bodyHeight = Math.max(servicesBoxHeight, libsBoxHeight);
 
       const contentHeight =
         HEADER_HEIGHT +
-        VERTICAL_PADDING * 2 +
-        servicesHeight +
-        libsHeight +
-        separatorGap;
+        META_HEIGHT +
+        BODY_VERTICAL_PADDING +
+        BODY_EXTRA_OFFSET +
+        bodyHeight +
+        BODY_VERTICAL_PADDING;
 
-      const height = Math.max(contentHeight, 200);
+      const width =
+        manualSize.width != null
+          ? Math.max(manualSize.width, 360)
+          : MACHINE_WIDTH;
+
+      const height = Math.max(
+        contentHeight,
+        manualSize.height ?? 0,
+        260
+      );
+
+      const machineData = m.data as any;
 
       return {
         id: m.id,
         type: "machine",
         data: {
           label: m.label,
-          os: m.data?.os,
-          ip: m.data?.ip,
-          permissions: m.data?.permissions,
-          status: m.data?.status,
+          os: machineData?.os,
+          ip: machineData?.ip,
+          permissions: machineData?.permissions,
+          status: machineData?.status,
+          cpuCores: machineData?.capacity?.cpuCores,
+          ramGB: machineData?.capacity?.ramGB,
+          datacenter: machineData?.location?.datacenter,
+          rack: machineData?.location?.rack,
+          zone: machineData?.location?.zone,
+          tags: machineData?.tags,
           hasServices: svcCount > 0,
-          hasLibraries: libCount > 0
+          hasLibraries: libCount > 0,
+          servicesAreaHeight: servicesBoxHeight,
+          librariesAreaHeight: libsBoxHeight,
+          onResize: (size: { width: number; height: number }) =>
+            onNodeAdjust(m.id, size)
         },
-        draggable: true, // 👈 solo las máquinas
-        position: { x: 0, y: 0 }, // lo rellena Dagre
+        draggable: true,
+        position: { x: 0, y: 0 },
         style: {
-          width: MACHINE_WIDTH,
+          width,
           height
         }
       };
     });
 
-    // 2) Edges lógicos máquina→máquina para layout
+    // 2) Edges lógicos máquina→máquina para Dagre
     const layoutEdgesForMachines: RFEdge[] = edges
       .map((e) => {
         const fromNode = nodes.find((n) => n.id === e.from);
         const toNode = nodes.find((n) => n.id === e.to);
         if (!fromNode || !toNode) return null;
 
-        const fromHost = fromNode.kind === "machine" ? fromNode.id : fromNode.host;
-        const toHost = toNode.kind === "machine" ? toNode.id : toNode.host;
+        const fromHost =
+          fromNode.kind === "machine" ? fromNode.id : fromNode.host;
+        const toHost =
+          toNode.kind === "machine" ? toNode.id : toNode.host;
+
         if (!fromHost || !toHost || fromHost === toHost) return null;
 
         return {
@@ -179,102 +272,237 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
       })
       .filter((e): e is RFEdge => e !== null);
 
-    // 3) Aplicamos Dagre a máquinas
     const layoutedMachines = layoutMachines(
       machineNodes,
       layoutEdgesForMachines
     );
 
-    // 4) Hijos (services/libs) dentro de cada máquina
-    const childNodes: RFNode[] = [];
-
-    layoutedMachines.forEach((machineNode) => {
+    const buildChildren = (machineNode: RFNode): RFNode[] => {
       const machineId = machineNode.id;
       const svc = servicesByMachine.get(machineId) ?? [];
       const libs = libsByMachine.get(machineId) ?? [];
 
-      // Services empiezan bien por debajo del header
-      let currentY = HEADER_HEIGHT + VERTICAL_PADDING;
+      const svcCount = svc.length;
+      const libCount = libs.length;
 
-      // Services en columna
+      const servicesUsefulHeight =
+        svcCount > 0
+          ? svcCount * SERVICE_HEIGHT + Math.max(svcCount - 1, 0) * GAP
+          : 0;
+
+      const libsUsefulHeight =
+        libCount > 0
+          ? libCount * LIB_HEIGHT + Math.max(libCount - 1, 0) * GAP
+          : 0;
+
+      const servicesBoxHeight =
+        svcCount > 0
+          ? SERVICES_BOX_PADDING_TOP +
+            LABEL_OFFSET +
+            servicesUsefulHeight +
+            SERVICES_BOX_PADDING_BOTTOM
+          : 0;
+
+      const libsBoxHeight =
+        libCount > 0
+          ? LIBS_BOX_PADDING_TOP +
+            LABEL_OFFSET +
+            libsUsefulHeight +
+            LIBS_BOX_PADDING_BOTTOM
+          : 0;
+
+      const bodyHeight = Math.max(servicesBoxHeight, libsBoxHeight);
+
+      const bodyTop =
+        HEADER_HEIGHT + META_HEIGHT + BODY_VERTICAL_PADDING + BODY_EXTRA_OFFSET;
+
+      const machineWidth =
+        (machineNode.style as any)?.width ?? MACHINE_WIDTH;
+      const innerWidth = machineWidth - HORIZONTAL_PADDING * 2;
+      const colWidth = (innerWidth - COLUMN_GAP) / 2;
+
+      const servicesFrameX = HORIZONTAL_PADDING;
+      const libsFrameX = HORIZONTAL_PADDING + colWidth + COLUMN_GAP;
+
+      const serviceNodeX = servicesFrameX + NODE_INNER_MARGIN_X;
+      const serviceNodeWidth = colWidth - NODE_INNER_MARGIN_X * 2;
+
+      const libsNodeX = libsFrameX + NODE_INNER_MARGIN_X;
+      const libsNodeWidth = colWidth - NODE_INNER_MARGIN_X * 2;
+
+      const children: RFNode[] = [];
+
+      let currentServiceY =
+        bodyTop + SERVICES_BOX_PADDING_TOP + LABEL_OFFSET;
       svc.forEach((s) => {
-        childNodes.push({
+        children.push({
           id: s.id,
           type: "service",
           parentId: machineId,
           extent: "parent",
+          draggable: false,
           position: {
-            x: 16,
-            y: currentY
+            x: serviceNodeX,
+            y: currentServiceY
+          },
+          style: {
+            width: serviceNodeWidth
           },
           data: {
             label: s.label,
-            type: s.data?.type
+            type: s.data?.type,
+            ports: s.data?.ports
           }
         });
 
-        currentY += SERVICE_HEIGHT + GAP;
+        currentServiceY += SERVICE_HEIGHT + GAP;
       });
 
-      // Más hueco antes de las libs
-      if (svc.length > 0 && libs.length > 0) {
-        currentY += 40;
-      }
-
-      // Libs en 2 columnas
-      libs.forEach((l, index) => {
-        const col = index % 2;
-        const row = Math.floor(index / 2);
-
-        childNodes.push({
+      let currentLibY = bodyTop + LIBS_BOX_PADDING_TOP + LABEL_OFFSET;
+      libs.forEach((l) => {
+        children.push({
           id: l.id,
           type: "library",
           parentId: machineId,
           extent: "parent",
+          draggable: false,
           position: {
-            x: 16 + col * LIB_COL_WIDTH,
-            y: currentY + row * (LIB_HEIGHT + GAP)
+            x: libsNodeX,
+            y: currentLibY
+          },
+          style: {
+            width: libsNodeWidth
           },
           data: {
-            label: l.label
+            label: l.label,
+            version: l.data?.version,
+            path: l.data?.path
           }
         });
+
+        currentLibY += LIB_HEIGHT + GAP;
       });
+
+      const _bodyBottom = bodyTop + bodyHeight;
+      void _bodyBottom;
+
+      return children;
+    };
+
+    const childNodes = layoutedMachines.flatMap((m) => buildChildren(m));
+
+    const positionedMachines = layoutedMachines.map((m) => {
+      const saved = nodePositions[m.id];
+      return saved
+        ? { ...m, position: saved }
+        : m;
     });
 
-    // 5) Edges reales entre nodos (services/libs)
-    const rfEdges: RFEdge[] = edges.map((e) => ({
-      id: e.id,
-      source: e.from,
-      target: e.to,
-      label: e.label,
-      animated: e.kind === "communicates_with",
-      style:
+    return [...positionedMachines, ...childNodes];
+  }, [nodes, edges, nodeAdjustments, nodePositions]);
+
+  const layoutEdges = useMemo(() => {
+    const rfEdges: RFEdge[] = edges.map((e) => {
+      const sourceNode = nodes.find((n) => n.id === e.from);
+      const targetNode = nodes.find((n) => n.id === e.to);
+      const raiseOverMachines =
+        (sourceNode && sourceNode.kind !== "machine") ||
+        (targetNode && targetNode.kind !== "machine");
+
+      const adjustments = edgeAdjustments[e.id] ?? {};
+      const color = e.color ?? "#0f172a";
+      const baseStyle =
         e.kind === "depends_on"
           ? { strokeDasharray: "4 2", strokeWidth: 1.2 }
-          : { strokeWidth: 1.6 }
-    }));
+          : { strokeWidth: 1.6 };
 
-    const rfNodes = [...layoutedMachines, ...childNodes];
+      const colorStyle = { stroke: color };
 
-    return { layoutNodes: rfNodes, layoutEdges: rfEdges };
-  }, [nodes, edges]);
+      const bend =
+        adjustments.bend ??
+        e.bend ??
+        0;
 
-  // 2) Estado controlado por ReactFlow (para permitir drag)
+      const labelOffset = {
+        x: adjustments.labelOffset?.x ?? e.labelOffset?.x ?? 0,
+        y: adjustments.labelOffset?.y ?? e.labelOffset?.y ?? 0
+      };
+
+      const curveOffset = {
+        x: adjustments.curveOffset?.x ?? e.curveOffset?.x ?? 0,
+        y: adjustments.curveOffset?.y ?? e.curveOffset?.y ?? 0
+      };
+
+      return {
+        id: e.id,
+        source: e.from,
+        target: e.to,
+        animated: e.kind === "communicates_with",
+        type: "adjustable",
+        style: {
+          ...baseStyle,
+          ...colorStyle
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color
+        },
+        data: {
+          label: e.label,
+          bend,
+          labelOffset,
+          color,
+          curveOffset,
+          raiseOverMachines,
+          onCurveOffsetChange: (offset: { x: number; y: number }) =>
+            onEdgeAdjust(e.id, { curveOffset: offset })
+        }
+      };
+    });
+
+    return rfEdges;
+  }, [edges, edgeAdjustments, onEdgeAdjust, nodes]);
+
+  // ----------------- estado para drag de máquinas ---------------------------
   const [flowNodes, setFlowNodes] = useState<RFNode[]>([]);
   const [flowEdges, setFlowEdges] = useState<RFEdge[]>([]);
 
-  // Cuando cambie el layout (nuevo JSON), reseteamos posiciones
   useEffect(() => {
     setFlowNodes(layoutNodes);
+  }, [layoutNodes]);
+
+  useEffect(() => {
     setFlowEdges(layoutEdges);
-  }, [layoutNodes, layoutEdges]);
+  }, [layoutEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      setFlowNodes((nds) => applyNodeChanges(changes, nds));
+      setFlowNodes((nds) => {
+        let changedPosition = false;
+        const updated = applyNodeChanges(changes, nds);
+        const positions: Record<string, { x: number; y: number }> = {};
+
+        changes.forEach((c) => {
+          if (c.type === "position" && c.position && c.id) {
+            const node = updated.find((n) => n.id === c.id);
+            if (node && node.type === "machine" && !node.parentNode) {
+              positions[c.id] = {
+                x: node.position.x,
+                y: node.position.y
+              };
+              changedPosition = true;
+            }
+          }
+        });
+
+        if (changedPosition) {
+          onNodesMove(positions);
+        }
+
+        return updated;
+      });
     },
-    []
+    [onNodesMove]
   );
 
   return (
@@ -283,6 +511,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         nodes={flowNodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         onNodesChange={onNodesChange}
         onNodeClick={(_, node) => onNodeSelect(node.id)}

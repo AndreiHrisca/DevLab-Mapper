@@ -1,22 +1,35 @@
 // src/components/sidepanel/DetailsPanel.tsx
 import React from "react";
-import { GraphNode, GraphEdge } from "../../core/types";
+import { GraphNode, GraphEdge, EdgeAdjustments } from "../../core/types";
 
 type DetailsPanelProps = {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  edgeAdjustments: EdgeAdjustments;
 };
 
 export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   selectedNodeId,
   selectedEdgeId,
   nodes,
-  edges
+  edges,
+  edgeAdjustments
 }) => {
   const node = nodes.find((n) => n.id === selectedNodeId) || null;
   const edge = edges.find((e) => e.id === selectedEdgeId) || null;
+  const adjustment = edge ? edgeAdjustments[edge.id] : undefined;
+  const effectiveBend =
+    (adjustment?.bend ?? edge?.bend) ?? 0;
+  const effectiveOffset = {
+    x: adjustment?.labelOffset?.x ?? edge?.labelOffset?.x ?? 0,
+    y: adjustment?.labelOffset?.y ?? edge?.labelOffset?.y ?? 0
+  };
+  const effectiveCurveOffset = {
+    x: adjustment?.curveOffset?.x ?? edge?.curveOffset?.x ?? 0,
+    y: adjustment?.curveOffset?.y ?? edge?.curveOffset?.y ?? 0
+  };
 
   return (
     <div
@@ -94,6 +107,20 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
               <strong>ID:</strong> {edge.id}
               <br />
               <strong>Kind:</strong> {edge.kind}
+              <br />
+              <strong>Color:</strong> {edge.color ?? "default"}
+              <br />
+              <strong>Bend:</strong> {effectiveBend}
+              <br />
+              <strong>Curve offset:</strong>{" "}
+              {effectiveCurveOffset.x !== 0 || effectiveCurveOffset.y !== 0
+                ? `x=${effectiveCurveOffset.x}, y=${effectiveCurveOffset.y}`
+                : "none"}
+              <br />
+              <strong>Label offset:</strong>{" "}
+              {effectiveOffset.x !== 0 || effectiveOffset.y !== 0
+                ? `x=${effectiveOffset.x}, y=${effectiveOffset.y}`
+                : "none"}
             </p>
             <pre
               style={{

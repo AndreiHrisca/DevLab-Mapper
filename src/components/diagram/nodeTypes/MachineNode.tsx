@@ -1,8 +1,13 @@
 // src/components/diagram/nodeTypes/MachineNode.tsx
 import React from "react";
-import { Handle, Position } from "reactflow";
+import { Handle, Position, NodeResizer } from "reactflow";
 
-type MachineStatus = "running" | "maintenance" | "deleted" | "disabled" | undefined;
+type MachineStatus =
+  | "running"
+  | "maintenance"
+  | "deleted"
+  | "disabled"
+  | undefined;
 
 type MachineNodeProps = {
   data: {
@@ -11,63 +16,82 @@ type MachineNodeProps = {
     ip?: string;
     permissions?: string[];
     status?: MachineStatus;
+
+    // Metadata extra
+    cpuCores?: number;
+    ramGB?: number;
+    datacenter?: string;
+    rack?: string;
+    zone?: string;
+    tags?: string[];
+
     hasServices?: boolean;
     hasLibraries?: boolean;
+    servicesAreaHeight?: number;
+    librariesAreaHeight?: number;
+    onResize?: (size: { width: number; height: number }) => void;
   };
+  selected?: boolean;
 };
 
 const statusPalette = {
   running: {
     border: "#16a34a",
     headerBg:
-      "linear-gradient(90deg,rgba(22,163,74,0.18),rgba(5,150,105,0.08))",
-    bodyBg: "rgba(236,253,245,0.6)",
+      "linear-gradient(90deg,rgba(22,163,74,0.22),rgba(5,150,105,0.10))",
+    bodyBg: "rgba(236,253,245,0.9)",
     shadow: "0 8px 18px rgba(22,163,74,0.25)",
-    pillBg: "rgba(22,163,74,0.12)",
+    pillBg: "rgba(22,163,74,0.18)",
     pillColor: "#166534"
   },
   maintenance: {
     border: "#f59e0b",
     headerBg:
-      "linear-gradient(90deg,rgba(245,158,11,0.18),rgba(251,191,36,0.10))",
-    bodyBg: "rgba(255,251,235,0.6)",
+      "linear-gradient(90deg,rgba(245,158,11,0.22),rgba(251,191,36,0.12))",
+    bodyBg: "rgba(255,251,235,0.9)",
     shadow: "0 8px 18px rgba(245,158,11,0.25)",
-    pillBg: "rgba(245,158,11,0.18)",
+    pillBg: "rgba(245,158,11,0.20)",
     pillColor: "#92400e"
   },
   deleted: {
     border: "#dc2626",
     headerBg:
-      "linear-gradient(90deg,rgba(220,38,38,0.18),rgba(248,113,113,0.10))",
-    bodyBg: "rgba(254,242,242,0.6)",
+      "linear-gradient(90deg,rgba(220,38,38,0.22),rgba(248,113,113,0.12))",
+    bodyBg: "rgba(254,242,242,0.9)",
     shadow: "0 8px 18px rgba(220,38,38,0.28)",
-    pillBg: "rgba(220,38,38,0.18)",
+    pillBg: "rgba(220,38,38,0.20)",
     pillColor: "#991b1b"
   },
   disabled: {
     border: "#6b7280",
     headerBg:
-      "linear-gradient(90deg,rgba(107,114,128,0.20),rgba(148,163,184,0.12))",
-    bodyBg: "rgba(243,244,246,0.6)",
+      "linear-gradient(90deg,rgba(107,114,128,0.24),rgba(148,163,184,0.16))",
+    bodyBg: "rgba(243,244,246,0.9)",
     shadow: "0 8px 18px rgba(31,41,55,0.22)",
-    pillBg: "rgba(107,114,128,0.18)",
+    pillBg: "rgba(107,114,128,0.20)",
     pillColor: "#374151"
   }
 } as const;
 
-export const MachineNode: React.FC<MachineNodeProps> = ({ data }) => {
+export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
   const {
     label,
     os,
     ip,
     permissions,
     status: rawStatus,
+    cpuCores,
+    ramGB,
+    datacenter,
+    rack,
+    zone,
+    tags,
     hasServices,
-    hasLibraries
+    hasLibraries,
+    servicesAreaHeight,
+    librariesAreaHeight,
+    onResize
   } = data;
-
-  const permissionsText =
-    permissions && permissions.length > 0 ? permissions.join(", ") : undefined;
 
   const normalizedStatus = (rawStatus ?? "running") as Exclude<
     MachineStatus,
@@ -85,203 +109,261 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data }) => {
       ? "DELETED"
       : "DISABLED";
 
-  // estilos reutilizables para la "tabla"
-  const tableRowStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "46px 6px 1fr", // col label, col ":", col valor
-    alignItems: "baseline",
-    fontSize: 9,
-    padding: "1px 0"
-  };
+  const permissionsText =
+    permissions && permissions.length > 0 ? permissions.join(", ") : "-";
 
-  const labelCellStyle: React.CSSProperties = {
-    fontWeight: 700
-  };
-
-  const colonCellStyle: React.CSSProperties = {
-    textAlign: "center",
-    opacity: 0.9
-  };
-
-  const valueCellStyle: React.CSSProperties = {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
-  };
+  const tagsText = tags && tags.length > 0 ? tags.join(", ") : "-";
 
   return (
     <div
       style={{
         width: "100%",
         height: "100%",
-        borderRadius: 20,
+        borderRadius: 24,
         border: `2px solid ${palette.border}`,
         backgroundColor: palette.bodyBg,
         boxShadow: palette.shadow,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        position: "relative",
-        opacity: normalizedStatus === "disabled" ? 0.75 : 1
+        boxSizing: "border-box",
+        opacity: 0.9,
+        position: "relative"
       }}
     >
-      {/* Header máquina */}
+      <NodeResizer
+        isVisible={selected}
+        minWidth={360}
+        minHeight={240}
+        handleStyle={{
+          width: 10,
+          height: 10,
+          borderRadius: 2,
+          border: `1px solid ${palette.border}`,
+          background: "#fff"
+        }}
+        lineStyle={{
+          borderColor: `${palette.border}70`
+        }}
+        onResize={(_, params) => {
+          onResize?.({
+            width: params.width,
+            height: params.height
+          });
+        }}
+      />
+      {/* HEADER -------------------------------------------------------------- */}
       <div
         style={{
-          padding: "6px 10px 8px 10px",
-          borderBottom: `1px solid ${palette.border}20`,
+          padding: "8px 16px",
+          borderBottom: `1px solid ${palette.border}33`,
           background: palette.headerBg,
           display: "flex",
-          flexDirection: "column",
-          gap: 4
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxSizing: "border-box"
         }}
       >
-        {/* Primera línea: nombre + pill de status */}
         <div
           style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#064e3b",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             gap: 8
           }}
         >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: "#065f46",
-              display: "flex",
-              alignItems: "center",
-              gap: 6
-            }}
-          >
-            <span>🖥</span>
-            <span>{label}</span>
-          </div>
-
-          <div
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: 0.6,
-              padding: "2px 8px",
-              borderRadius: 999,
-              background: palette.pillBg,
-              color: palette.pillColor,
-              border: `1px solid ${palette.pillColor}33`
-            }}
-          >
-            {statusLabel}
-          </div>
+          <span>💻</span>
+          <span>{label}</span>
         </div>
-
-        {/* Mini tabla OS / IP / Permissions */}
-        {(os || ip || permissionsText) && (
-          <div
-            style={{
-              marginTop: 4,
-              borderRadius: 6,
-              background: "rgba(255,255,255,0.45)",
-              border: `1px solid ${palette.border}33`,
-              padding: "4px 6px",
-              color: "#065f46"
-            }}
-          >
-            {os && (
-              <div style={tableRowStyle}>
-                <span style={labelCellStyle}>OS</span>
-                <span style={colonCellStyle}>:</span>
-                <span style={valueCellStyle}>{os}</span>
-              </div>
-            )}
-            {ip && (
-              <div style={tableRowStyle}>
-                <span style={labelCellStyle}>IP</span>
-                <span style={colonCellStyle}>:</span>
-                <span style={valueCellStyle}>{ip}</span>
-              </div>
-            )}
-            {permissionsText && (
-              <div style={tableRowStyle}>
-                <span style={labelCellStyle}>Perms</span>
-                <span style={colonCellStyle}>:</span>
-                <span style={valueCellStyle}>{permissionsText}</span>
-              </div>
-            )}
-          </div>
-        )}
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: 0.8,
+            padding: "2px 10px",
+            borderRadius: 999,
+            background: palette.pillBg,
+            color: palette.pillColor,
+            border: `1px solid ${palette.pillColor}40`
+          }}
+        >
+          {statusLabel}
+        </div>
       </div>
 
-      {/* Contenido/secciones */}
+      {/* METADATA 2 COLUMNAS ------------------------------------------------- */}
+      <div
+        style={{
+          padding: "10px 16px 8px 16px",
+          borderBottom: `1px solid ${palette.border}33`,
+          boxSizing: "border-box"
+        }}
+      >
+        <div
+          style={{
+            borderRadius: 18,
+            border: `1px solid ${palette.border}55`,
+            background: "rgba(255,255,255,0.9)",
+            padding: "8px 10px",
+            fontSize: 10,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            columnGap: 16,
+            rowGap: 4,
+            boxSizing: "border-box"
+          }}
+        >
+          {/* Columna izquierda */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "40px 6px 1fr",
+              rowGap: 2,
+              color: "#064e3b"
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>OS</span>
+            <span>:</span>
+            <span>{os ?? "-"}</span>
+
+            <span style={{ fontWeight: 600 }}>IP</span>
+            <span>:</span>
+            <span>{ip ?? "-"}</span>
+
+            <span style={{ fontWeight: 600 }}>Perms</span>
+            <span>:</span>
+            <span>{permissionsText}</span>
+
+            <span style={{ fontWeight: 600 }}>Tags</span>
+            <span>:</span>
+            <span>{tagsText}</span>
+          </div>
+
+          {/* Columna derecha */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "55px 6px 1fr",
+              rowGap: 2,
+              color: "#064e3b"
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>CPU</span>
+            <span>:</span>
+            <span>{cpuCores != null ? `${cpuCores} cores` : "-"}</span>
+
+            <span style={{ fontWeight: 600 }}>RAM</span>
+            <span>:</span>
+            <span>{ramGB != null ? `${ramGB} GB` : "-"}</span>
+
+            <span style={{ fontWeight: 600 }}>DC</span>
+            <span>:</span>
+            <span>{datacenter ?? "-"}</span>
+
+            <span style={{ fontWeight: 600 }}>Rack</span>
+            <span>:</span>
+            <span>{rack ?? "-"}</span>
+
+            <span style={{ fontWeight: 600 }}>Zone</span>
+            <span>:</span>
+            <span>{zone ?? "-"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* CUERPO: SERVICES | LIBRARIES ---------------------------------------- */}
       <div
         style={{
           flex: 1,
-          padding: "6px 8px 8px 8px",
-          fontSize: 10,
-          color: "#047857",
-          position: "relative"
+          padding: "10px 16px 12px 16px",
+          display: "flex",
+          gap: 12,
+          boxSizing: "border-box"
         }}
       >
+        {/* Columna SERVICES */}
         {hasServices && (
           <div
             style={{
-              position: "absolute",
-              top: 6,
-              left: 10,
-              fontSize: 9,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-              color: "#059669",
-              opacity: 0.7,
-              pointerEvents: "none"
+              flex: 1,
+              borderRadius: 16,
+              border: "1px solid rgba(148,163,184,0.7)",
+              background: "rgba(255,255,255,0.95)",
+              padding: "10px 10px 8px 10px",
+              minHeight: servicesAreaHeight ?? 80,
+              boxSizing: "border-box",
+              position: "relative",
+              boxShadow: "0 1px 2px rgba(15,23,42,0.06)",
+              overflowY: "auto"
             }}
           >
-            Services
+            {/* Header SERVICES con divider */}
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                color: "rgba(15,23,42,0.7)",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                paddingBottom: 4,
+                marginBottom: 8
+              }}
+            >
+              Services
+            </div>
+            {/* Los ServiceNode se colocan por coordenadas desde DiagramCanvas */}
           </div>
         )}
 
+        {/* Columna LIBRARIES */}
         {hasLibraries && (
           <div
             style={{
-              position: "absolute",
-              bottom: 30,
-              left: 10,
-              fontSize: 9,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-              color: "#4b5563",
-              opacity: 0.7,
-              pointerEvents: "none"
+              flex: 1,
+              borderRadius: 16,
+              border: "1px dashed rgba(148,163,184,0.85)",
+              background: "rgba(255,255,255,0.95)",
+              padding: "10px 10px 8px 10px",
+              minHeight: librariesAreaHeight ?? 80,
+              boxSizing: "border-box",
+              position: "relative",
+              boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
+              overflowY: "auto"
             }}
           >
-            Libraries
+            {/* Header LIBRARIES con divider */}
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                color: "rgba(15,23,42,0.7)",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                paddingBottom: 4,
+                marginBottom: 8
+              }}
+            >
+              Libraries
+            </div>
+            {/* Los LibraryNode se colocan por coordenadas desde DiagramCanvas */}
           </div>
-        )}
-
-        {hasServices && hasLibraries && (
-          <div
-            style={{
-              position: "absolute",
-              left: 8,
-              right: 8,
-              borderTop: "1px dashed rgba(148,163,184,0.7)",
-              top: "56%"
-            }}
-          />
         )}
       </div>
 
+      {/* Handles máquina global (entrada izq, salida dcha) */}
       <Handle
-        type="source"
-        position={Position.Top}
+        type="target"
+        position={Position.Left}
         style={{ opacity: 0, pointerEvents: "none" }}
       />
       <Handle
         type="source"
-        position={Position.Bottom}
+        position={Position.Right}
         style={{ opacity: 0, pointerEvents: "none" }}
       />
     </div>

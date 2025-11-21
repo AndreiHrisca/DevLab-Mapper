@@ -68,12 +68,26 @@ export type MachineNodeJson = {
 };
 
 
+export type EdgeLabelOffset = {
+  x?: number;
+  y?: number;
+};
+
+export type EdgeCurveOffset = {
+  x?: number;
+  y?: number;
+};
+
 export type EdgeJson = {
   id: string;
   from: string;
   to: string;
   kind: "communicates_with" | "depends_on" | string;
   label?: string;
+  color?: string;
+  bend?: number;
+  labelOffset?: EdgeLabelOffset;
+  curveOffset?: EdgeCurveOffset;
   meta?: Record<string, any>;
 };
 
@@ -103,5 +117,24 @@ export type GraphEdge = {
   to: string;
   kind: string;
   label?: string;
+  color?: string;
+  bend?: number;
+  labelOffset?: EdgeLabelOffset;
+  curveOffset?: EdgeCurveOffset;
   data?: any;
 };
+
+export type EdgeAdjustment = {
+  bend?: number;
+  labelOffset?: EdgeLabelOffset;
+  curveOffset?: EdgeCurveOffset;
+};
+
+export type EdgeAdjustments = Record<string, EdgeAdjustment>;
+
+export type NodeAdjustment = {
+  width?: number;
+  height?: number;
+};
+
+export type NodeAdjustments = Record<string, NodeAdjustment>;

@@ -82,6 +82,10 @@ function buildGraphEdges(
       to: edge.to,
       kind: edge.kind,
       label: edge.label,
+      color: edge.color,
+      bend: edge.bend,
+      labelOffset: edge.labelOffset,
+      curveOffset: edge.curveOffset,
       data: edge.meta ?? {},
     });
   }

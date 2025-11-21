@@ -2,28 +2,62 @@
 import React from "react";
 import { Handle, Position } from "reactflow";
 
-export const LibraryNode: React.FC<any> = ({ data }) => {
+type LibraryNodeProps = {
+  data: {
+    label: string;
+    version?: string;
+    path?: string;
+  };
+};
+
+export const LibraryNode: React.FC<LibraryNodeProps> = ({ data }) => {
+  const { label, version, path } = data;
+
   return (
     <div
       style={{
-        borderRadius: 999,
-        border: "1px dashed #9ca3af",
-        padding: "3px 10px",
-        background: "#f9fafb",
-        fontSize: 9,
-        color: "#374151",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        boxShadow: "0 2px 4px rgba(148,163,184,0.25)"
+        width: "100%", // clave para ocupar todo el ancho que le pasa DiagramCanvas
+        minHeight: 60,
+        borderRadius: 18,
+        border: "1px dashed rgba(148,163,184,0.9)",
+        background: "rgba(255,255,255,0.96)",
+        padding: "6px 10px",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        fontSize: 10,
+        boxShadow: "0 2px 4px rgba(15,23,42,0.10)"
       }}
     >
-      <span>📦</span>
-      <span>{data.label}</span>
+      <div style={{ fontWeight: 700, marginBottom: 2 }}>{label}</div>
+      {version && (
+        <div>
+          <strong>Version:</strong> {version}
+        </div>
+      )}
+      {path && (
+        <div
+          style={{
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+            overflow: "hidden"
+          }}
+        >
+          <strong>Path:</strong> {path}
+        </div>
+      )}
+
+      {/* Handles para edges */}
       <Handle
         type="target"
-        position={Position.Top}
-        style={{ top: -4, width: 6, height: 6 }}
+        position={Position.Left}
+        style={{ width: 6, height: 6 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ width: 6, height: 6 }}
       />
     </div>
   );

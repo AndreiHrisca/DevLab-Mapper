@@ -29,6 +29,7 @@ type MachineNodeProps = {
     hasLibraries?: boolean;
     servicesAreaHeight?: number;
     librariesAreaHeight?: number;
+    theme?: "light" | "dark";
     onResize?: (size: { width: number; height: number }) => void;
   };
   selected?: boolean;
@@ -90,15 +91,22 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
     hasLibraries,
     servicesAreaHeight,
     librariesAreaHeight,
+    theme,
     onResize
   } = data;
 
-  const normalizedStatus = (rawStatus ?? "running") as Exclude<
-    MachineStatus,
-    undefined
-  >;
+  const isDark = theme === "dark";
 
-  const palette = statusPalette[normalizedStatus];
+  const normalizedStatus = ((): Exclude<MachineStatus, undefined> => {
+    const candidate = rawStatus ?? "running";
+    return ["running", "maintenance", "deleted", "disabled"].includes(
+      candidate as string
+    )
+      ? (candidate as Exclude<MachineStatus, undefined>)
+      : "running";
+  })();
+
+  const palette = statusPalette[normalizedStatus] ?? statusPalette.running;
 
   const statusLabel =
     normalizedStatus === "running"
@@ -113,6 +121,11 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
     permissions && permissions.length > 0 ? permissions.join(", ") : "-";
 
   const tagsText = tags && tags.length > 0 ? tags.join(", ") : "-";
+  const baseBg = isDark ? "#0b1220" : palette.bodyBg;
+  const headerBg = isDark ? `${palette.headerBg}, rgba(15,23,42,0.1)` : palette.headerBg;
+  const textColor = isDark ? "#e2e8f0" : "#064e3b";
+  const cardBg = isDark ? "#0f172a" : "rgba(255,255,255,0.95)";
+  const cardBorder = isDark ? `1px solid rgba(226,232,240,0.2)` : "1px solid rgba(148,163,184,0.7)";
 
   return (
     <div
@@ -121,7 +134,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
         height: "100%",
         borderRadius: 24,
         border: `2px solid ${palette.border}`,
-        backgroundColor: palette.bodyBg,
+        backgroundColor: baseBg,
         boxShadow: palette.shadow,
         display: "flex",
         flexDirection: "column",
@@ -157,7 +170,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
         style={{
           padding: "8px 16px",
           borderBottom: `1px solid ${palette.border}33`,
-          background: palette.headerBg,
+          background: headerBg,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -168,7 +181,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
           style={{
             fontSize: 13,
             fontWeight: 700,
-            color: "#064e3b",
+            color: textColor,
             display: "flex",
             alignItems: "center",
             gap: 8
@@ -199,6 +212,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
         style={{
           padding: "10px 16px 8px 16px",
           borderBottom: `1px solid ${palette.border}33`,
+          background: baseBg,
           boxSizing: "border-box"
         }}
       >
@@ -206,7 +220,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
           style={{
             borderRadius: 18,
             border: `1px solid ${palette.border}55`,
-            background: "rgba(255,255,255,0.9)",
+            background: isDark ? "#0f172a" : "rgba(255,255,255,0.9)",
             padding: "8px 10px",
             fontSize: 10,
             display: "grid",
@@ -222,7 +236,7 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
               display: "grid",
               gridTemplateColumns: "40px 6px 1fr",
               rowGap: 2,
-              color: "#064e3b"
+              color: textColor
             }}
           >
             <span style={{ fontWeight: 600 }}>OS</span>
@@ -244,13 +258,13 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
 
           {/* Columna derecha */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "55px 6px 1fr",
-              rowGap: 2,
-              color: "#064e3b"
-            }}
-          >
+              style={{
+                display: "grid",
+                gridTemplateColumns: "55px 6px 1fr",
+                rowGap: 2,
+                color: textColor
+              }}
+            >
             <span style={{ fontWeight: 600 }}>CPU</span>
             <span>:</span>
             <span>{cpuCores != null ? `${cpuCores} cores` : "-"}</span>
@@ -290,8 +304,8 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
             style={{
               flex: 1,
               borderRadius: 16,
-              border: "1px solid rgba(148,163,184,0.7)",
-              background: "rgba(255,255,255,0.95)",
+              border: isDark ? "1px solid rgba(226,232,240,0.15)" : "1px solid rgba(148,163,184,0.7)",
+              background: cardBg,
               padding: "10px 10px 8px 10px",
               minHeight: servicesAreaHeight ?? 80,
               boxSizing: "border-box",
@@ -325,8 +339,8 @@ export const MachineNode: React.FC<MachineNodeProps> = ({ data, selected }) => {
             style={{
               flex: 1,
               borderRadius: 16,
-              border: "1px dashed rgba(148,163,184,0.85)",
-              background: "rgba(255,255,255,0.95)",
+              border: isDark ? "1px dashed rgba(226,232,240,0.2)" : "1px dashed rgba(148,163,184,0.85)",
+              background: cardBg,
               padding: "10px 10px 8px 10px",
               minHeight: librariesAreaHeight ?? 80,
               boxSizing: "border-box",

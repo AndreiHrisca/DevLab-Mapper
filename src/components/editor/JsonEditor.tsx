@@ -5,6 +5,9 @@ import Editor from "@monaco-editor/react";
 type JsonEditorProps = {
   value: string;
   errorMessage?: string;
+  fontSize?: number;
+  mono?: boolean;
+  onToggleMono?: () => void;
   onChange: (value: string) => void;
 };
 
@@ -246,6 +249,9 @@ const DEFAULT_EXAMPLE = `{
 export const JsonEditor: React.FC<JsonEditorProps> = ({
   value,
   errorMessage,
+  fontSize,
+  mono = true,
+  onToggleMono,
   onChange
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -322,7 +328,6 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
             {errorMessage}
           </div>
         )}
-
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={handleFileButtonClick}
@@ -352,7 +357,26 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
           >
             Use example
           </button>
+          {onToggleMono && (
+            <button
+              onClick={onToggleMono}
+              style={{
+                fontSize: 11,
+                padding: "4px 10px",
+                borderRadius: 999,
+                border: "1px solid #4b5563",
+                background: mono ? "#0ea5e9" : "#020617",
+                color: "#e5e7eb",
+                cursor: "pointer"
+              }}
+              title="Alterna fuente monoespaciada en el editor"
+            >
+              {mono ? "Mono on" : "Mono off"}
+            </button>
+          )}
         </div>
+
+        {/* el bloque de botones ya se movió arriba */}
 
         <input
           ref={fileInputRef}
@@ -372,7 +396,10 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
           value={value}
           onChange={handleEditorChange}
           options={{
-            fontSize: 12,
+            fontSize: fontSize ?? 12,
+            fontFamily: mono
+              ? "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+              : "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             automaticLayout: true,

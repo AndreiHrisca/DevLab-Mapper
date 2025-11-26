@@ -20,6 +20,7 @@ type AdjustableEdgeData = {
     x?: number;
     y?: number;
   };
+  useStraight?: boolean;
   onCurveOffsetChange?: (offset: { x: number; y: number }) => void;
   raiseOverMachines?: boolean;
 };
@@ -56,6 +57,8 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
   const bend = data?.bend ?? 0;
   const curveOffsetX = data?.curveOffset?.x ?? 0;
   const curveOffsetY = data?.curveOffset?.y ?? 0;
+  const useStraight = data?.useStraight ?? false;
+  const isEditable = Boolean(data?.onCurveOffsetChange);
 
   // Curvas suaves desplazadas verticalmente por "bend"
   const horizontalDelta = (targetX - sourceX) / 2;
@@ -76,22 +79,28 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
   const adjustedControlY1 = controlY1 + curveOffsetY;
   const adjustedControlY2 = controlY2 + curveOffsetY;
 
-  const path = `M ${sourceX},${sourceY} C ${adjustedControlX1},${adjustedControlY1} ${adjustedControlX2},${adjustedControlY2} ${targetX},${targetY}`;
+  const curvePath = `M ${sourceX},${sourceY} C ${adjustedControlX1},${adjustedControlY1} ${adjustedControlX2},${adjustedControlY2} ${targetX},${targetY}`;
+  const straightPath = `M ${sourceX},${sourceY} L ${targetX},${targetY}`;
+  const path = useStraight ? straightPath : curvePath;
 
-  const labelPointX = cubicBezierPoint(
-    0.5,
-    sourceX,
-    adjustedControlX1,
-    adjustedControlX2,
-    targetX
-  );
-  const labelPointY = cubicBezierPoint(
-    0.5,
-    sourceY,
-    adjustedControlY1,
-    adjustedControlY2,
-    targetY
-  );
+  const labelPointX = useStraight
+    ? (sourceX + targetX) / 2
+    : cubicBezierPoint(
+        0.5,
+        sourceX,
+        adjustedControlX1,
+        adjustedControlX2,
+        targetX
+      );
+  const labelPointY = useStraight
+    ? (sourceY + targetY) / 2
+    : cubicBezierPoint(
+        0.5,
+        sourceY,
+        adjustedControlY1,
+        adjustedControlY2,
+        targetY
+      );
 
   const offsetX = data?.labelOffset?.x ?? 0;
   const offsetY = data?.labelOffset?.y ?? 0;
@@ -114,18 +123,12 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
       : undefined;
 
   const padding = 24;
-  const pointsX = [
-    sourceX,
-    targetX,
-    adjustedControlX1,
-    adjustedControlX2
-  ];
-  const pointsY = [
-    sourceY,
-    targetY,
-    adjustedControlY1,
-    adjustedControlY2
-  ];
+  const pointsX = useStraight
+    ? [sourceX, targetX]
+    : [sourceX, targetX, adjustedControlX1, adjustedControlX2];
+  const pointsY = useStraight
+    ? [sourceY, targetY]
+    : [sourceY, targetY, adjustedControlY1, adjustedControlY2];
   const minX = Math.min(...pointsX) - padding;
   const maxX = Math.max(...pointsX) + padding;
   const minY = Math.min(...pointsY) - padding;
@@ -133,7 +136,9 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
   const overlayWidth = Math.max(maxX - minX, 1);
   const overlayHeight = Math.max(maxY - minY, 1);
 
-  const overlayPath = `M ${sourceX - minX},${sourceY - minY} C ${adjustedControlX1 - minX},${adjustedControlY1 - minY} ${adjustedControlX2 - minX},${adjustedControlY2 - minY} ${targetX - minX},${targetY - minY}`;
+  const overlayPath = useStraight
+    ? `M ${sourceX - minX},${sourceY - minY} L ${targetX - minX},${targetY - minY}`
+    : `M ${sourceX - minX},${sourceY - minY} C ${adjustedControlX1 - minX},${adjustedControlY1 - minY} ${adjustedControlX2 - minX},${adjustedControlY2 - minY} ${targetX - minX},${targetY - minY}`;
   const overlayMarkerId = `${id}-overlay-arrow`;
 
   const handleCurvePointerDown = (
@@ -189,7 +194,7 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
           d={path}
           fill="none"
           stroke="transparent"
-          strokeWidth={12}
+          strokeWidth={24}
           pointerEvents="stroke"
           style={{ cursor: "grab" }}
           onPointerDown={handleCurvePointerDown}
@@ -205,14 +210,17 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
                 left: 0,
                 top: 0,
                 transform: `translate(${minX}px, ${minY}px)`,
-                pointerEvents: "none",
+                pointerEvents: isEditable ? "auto" : "none",
                 zIndex: 20
               }}
             >
               <svg
                 width={overlayWidth}
                 height={overlayHeight}
-                style={{ overflow: "visible", pointerEvents: "auto" }}
+                style={{
+                  overflow: "visible",
+                  pointerEvents: isEditable ? "auto" : "none"
+                }}
               >
                 <defs>
                   <marker
@@ -237,8 +245,13 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
                   strokeWidth={strokeWidth}
                   strokeDasharray={strokeDasharray}
                   markerEnd={`url(#${overlayMarkerId})`}
-                  style={{ cursor: "grab", pointerEvents: "stroke" }}
-                  onPointerDown={handleCurvePointerDown}
+                  style={{
+                    cursor: isEditable ? "grab" : "default",
+                    pointerEvents: isEditable ? "stroke" : "none"
+                  }}
+                  onPointerDown={
+                    isEditable ? handleCurvePointerDown : undefined
+                  }
                 />
               </svg>
             </div>
@@ -249,8 +262,8 @@ export const AdjustableEdge: React.FC<EdgeProps<AdjustableEdgeData>> = ({
               style={{
                 position: "absolute",
                 transform: `translate(-50%, -50%) translate(${labelPointX}px, ${labelPointY}px)`,
-                width: 14,
-                height: 14,
+                width: 18,
+                height: 18,
                 borderRadius: "50%",
                 background: "#fff",
                 border: `2px solid ${labelColor}`,

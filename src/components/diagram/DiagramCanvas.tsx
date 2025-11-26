@@ -30,13 +30,16 @@ type DiagramCanvasProps = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   edgeAdjustments: EdgeAdjustments;
+  editEdgesMode: boolean;
   nodeAdjustments: Record<string, { width?: number; height?: number }>;
   nodePositions: Record<string, { x: number; y: number }>;
+  theme: "light" | "dark";
   onNodeAdjust: (nodeId: string, adjustment: { width?: number; height?: number }) => void;
   onEdgeAdjust: (edgeId: string, adjustment: EdgeAdjustment) => void;
   onNodesMove: (positions: Record<string, { x: number; y: number }>) => void;
   onNodeSelect: (id: string | null) => void;
   onEdgeSelect: (id: string | null) => void;
+  edgeShape: "curved" | "straight";
 };
 
 const nodeTypes = {
@@ -87,6 +90,53 @@ const HORIZONTAL_PADDING = 16;
 // margen horizontal interno extra para que las tarjetas no “rocen” el borde
 const NODE_INNER_MARGIN_X = 22;
 
+function getMachineSize(node: RFNode) {
+  const width =
+    (node.style as any)?.width != null
+      ? Number((node.style as any)?.width)
+      : MACHINE_WIDTH;
+  const height =
+    (node.style as any)?.height != null
+      ? Number((node.style as any)?.height)
+      : 260;
+  return { width, height };
+}
+
+export function resolveMachineOverlaps(
+  updated: RFNode[],
+  previous: RFNode[]
+): RFNode[] {
+  const machines = updated.filter(
+    (n) => n.type === "machine" && !n.parentNode
+  );
+
+  return updated.map((node) => {
+    if (node.type !== "machine" || node.parentNode) return node;
+
+    const size = getMachineSize(node);
+    const overlaps = machines.some((other) => {
+      if (other.id === node.id) return false;
+      const otherSize = getMachineSize(other);
+      const ax1 = node.position.x;
+      const ay1 = node.position.y;
+      const ax2 = ax1 + size.width;
+      const ay2 = ay1 + size.height;
+
+      const bx1 = other.position.x;
+      const by1 = other.position.y;
+      const bx2 = bx1 + otherSize.width;
+      const by2 = by1 + otherSize.height;
+
+      return !(ax2 <= bx1 || bx2 <= ax1 || ay2 <= by1 || by2 <= ay1);
+    });
+
+    if (!overlaps) return node;
+
+    const prev = previous.find((n) => n.id === node.id);
+    return prev ? { ...node, position: prev.position } : node;
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Dagre sólo para las máquinas
 
@@ -136,10 +186,15 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
   onNodeAdjust,
   nodePositions,
   onNodesMove,
+  editEdgesMode,
+  edgeShape,
+  theme,
   onEdgeAdjust,
   onNodeSelect,
   onEdgeSelect
 }) => {
+  const isDark = theme === "dark";
+
   const layoutNodes = useMemo(() => {
     const machines = nodes.filter((n) => n.kind === "machine");
     const services = nodes.filter((n) => n.kind === "service");
@@ -238,6 +293,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
           hasLibraries: libCount > 0,
           servicesAreaHeight: servicesBoxHeight,
           librariesAreaHeight: libsBoxHeight,
+          theme,
           onResize: (size: { width: number; height: number }) =>
             onNodeAdjust(m.id, size)
         },
@@ -350,6 +406,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
           },
           data: {
             label: s.label,
+            theme,
             type: s.data?.type,
             ports: s.data?.ports
           }
@@ -375,6 +432,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
           },
           data: {
             label: l.label,
+            theme,
             version: l.data?.version,
             path: l.data?.path
           }
@@ -418,8 +476,9 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
 
       const colorStyle = { stroke: color };
 
+      const isStraight = edgeShape === "straight";
       const bend =
-        adjustments.bend ??
+        (isStraight ? 0 : adjustments.bend) ??
         e.bend ??
         0;
 
@@ -429,8 +488,12 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
       };
 
       const curveOffset = {
-        x: adjustments.curveOffset?.x ?? e.curveOffset?.x ?? 0,
-        y: adjustments.curveOffset?.y ?? e.curveOffset?.y ?? 0
+        x: isStraight
+          ? 0
+          : adjustments.curveOffset?.x ?? e.curveOffset?.x ?? 0,
+        y: isStraight
+          ? 0
+          : adjustments.curveOffset?.y ?? e.curveOffset?.y ?? 0
       };
 
       return {
@@ -454,22 +517,27 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
           color,
           curveOffset,
           raiseOverMachines,
-          onCurveOffsetChange: (offset: { x: number; y: number }) =>
-            onEdgeAdjust(e.id, { curveOffset: offset })
+          useStraight: isStraight,
+          onCurveOffsetChange: editEdgesMode && !isStraight
+            ? (offset: { x: number; y: number }) =>
+                onEdgeAdjust(e.id, { curveOffset: offset })
+            : undefined
         }
       };
     });
 
     return rfEdges;
-  }, [edges, edgeAdjustments, onEdgeAdjust, nodes]);
+  }, [edgeShape, editEdgesMode, edges, edgeAdjustments, onEdgeAdjust, nodes]);
 
   // ----------------- estado para drag de máquinas ---------------------------
   const [flowNodes, setFlowNodes] = useState<RFNode[]>([]);
   const [flowEdges, setFlowEdges] = useState<RFEdge[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
+    if (isDragging) return;
     setFlowNodes(layoutNodes);
-  }, [layoutNodes]);
+  }, [isDragging, layoutNodes]);
 
   useEffect(() => {
     setFlowEdges(layoutEdges);
@@ -480,12 +548,22 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
       setFlowNodes((nds) => {
         let changedPosition = false;
         const updated = applyNodeChanges(changes, nds);
+        const resolved = resolveMachineOverlaps(updated, nds);
+
         const positions: Record<string, { x: number; y: number }> = {};
 
         changes.forEach((c) => {
           if (c.type === "position" && c.position && c.id) {
-            const node = updated.find((n) => n.id === c.id);
-            if (node && node.type === "machine" && !node.parentNode) {
+            const node = resolved.find((n) => n.id === c.id);
+            const prev = nds.find((n) => n.id === c.id);
+            if (
+              node &&
+              node.type === "machine" &&
+              !node.parentNode &&
+              (!prev ||
+                prev.position.x !== node.position.x ||
+                prev.position.y !== node.position.y)
+            ) {
               positions[c.id] = {
                 x: node.position.x,
                 y: node.position.y
@@ -499,11 +577,19 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
           onNodesMove(positions);
         }
 
-        return updated;
+        return resolved;
       });
     },
     [onNodesMove]
   );
+
+  const handleNodeDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleNodeDragStop = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
@@ -514,6 +600,8 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         edgeTypes={edgeTypes}
         fitView
         onNodesChange={onNodesChange}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDragStop={handleNodeDragStop}
         onNodeClick={(_, node) => onNodeSelect(node.id)}
         onPaneClick={() => {
           onNodeSelect(null);
@@ -531,9 +619,12 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
             bottom: 16,
             right: 16,
             borderRadius: 8,
-            border: "1px solid #e5e7eb",
-            boxShadow: "0 4px 10px rgba(15,23,42,0.18)"
+            border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+            boxShadow: "0 4px 10px rgba(15,23,42,0.18)",
+            background: isDark ? "#0b1220" : "#ffffff"
           }}
+          maskColor={isDark ? "rgba(15,23,42,0.75)" : "rgba(255,255,255,0.6)"}
+          nodeColor={isDark ? "#1f2937" : "#e2e8f0"}
         />
         <Controls />
       </ReactFlow>

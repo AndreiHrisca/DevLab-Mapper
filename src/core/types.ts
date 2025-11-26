@@ -138,3 +138,8 @@ export type NodeAdjustment = {
 };
 
 export type NodeAdjustments = Record<string, NodeAdjustment>;
+
+export type LayoutState = {
+  nodes?: Record<string, { x?: number; y?: number; width?: number; height?: number }>;
+  edges?: EdgeAdjustments;
+};

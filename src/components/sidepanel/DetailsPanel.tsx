@@ -8,6 +8,7 @@ type DetailsPanelProps = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   edgeAdjustments: EdgeAdjustments;
+  theme: "light" | "dark";
 };
 
 export const DetailsPanel: React.FC<DetailsPanelProps> = ({
@@ -15,7 +16,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   selectedEdgeId,
   nodes,
   edges,
-  edgeAdjustments
+  edgeAdjustments,
+  theme
 }) => {
   const node = nodes.find((n) => n.id === selectedNodeId) || null;
   const edge = edges.find((e) => e.id === selectedEdgeId) || null;
@@ -31,22 +33,33 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
     y: adjustment?.curveOffset?.y ?? edge?.curveOffset?.y ?? 0
   };
 
+  const isDark = theme === "dark";
+  const colors = {
+    bg: isDark ? "#0f172a" : "#ffffff",
+    border: isDark ? "#1f2937" : "#e5e7eb",
+    text: isDark ? "#e2e8f0" : "#111827",
+    muted: isDark ? "#94a3b8" : "#6b7280",
+    blockBg: isDark ? "#0b1220" : "#f9fafb",
+    blockBorder: isDark ? "#1f2937" : "#e5e7eb"
+  };
+
   return (
     <div
       style={{
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        background: "#ffffff",
-        borderLeft: "1px solid #e5e7eb"
+        background: colors.bg,
+        borderLeft: `1px solid ${colors.border}`,
+        color: colors.text
       }}
     >
       {/* Header fijo */}
       <div
         style={{
           padding: "16px 18px",
-          borderBottom: "1px solid #e5e7eb",
-          background: "white",
+          borderBottom: `1px solid ${colors.border}`,
+          background: isDark ? "#0b1220" : "#ffffff",
           position: "sticky",
           top: 0,
           zIndex: 5
@@ -68,11 +81,12 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
         style={{
           padding: "18px",
           overflowY: "auto",
-          flex: 1
+          flex: 1,
+          color: colors.text
         }}
       >
         {!node && !edge && (
-          <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+          <p style={{ fontSize: "0.85rem", color: colors.muted }}>
             Select a node or edge in the diagram to see details.
           </p>
         )}
@@ -87,12 +101,13 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
             </p>
             <pre
               style={{
-                background: "#f9fafb",
+                background: colors.blockBg,
                 borderRadius: 8,
                 padding: 12,
                 fontSize: "0.75rem",
                 overflow: "auto",
-                border: "1px solid #e5e7eb"
+                border: `1px solid ${colors.blockBorder}`,
+                color: colors.text
               }}
             >
               {JSON.stringify(node.data, null, 2)}
@@ -124,12 +139,13 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
             </p>
             <pre
               style={{
-                background: "#f9fafb",
+                background: colors.blockBg,
                 borderRadius: 8,
                 padding: 12,
                 fontSize: "0.75rem",
                 overflow: "auto",
-                border: "1px solid #e5e7eb"
+                border: `1px solid ${colors.blockBorder}`,
+                color: colors.text
               }}
             >
               {JSON.stringify(edge.data, null, 2)}

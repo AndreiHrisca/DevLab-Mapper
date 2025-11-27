@@ -16,6 +16,7 @@ import {
 } from "./core/types";
 
 type EdgeShape = "curved" | "straight";
+type LayoutMode = "manual" | "auto";
 
 function hashText(text: string): string {
   let hash = 0;
@@ -50,6 +51,13 @@ export const App: React.FC = () => {
         ? (localStorage.getItem("devlab-edge-shape") as EdgeShape | null)
         : null;
     return stored === "straight" ? "straight" : "curved";
+  });
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
+    const stored =
+      typeof localStorage !== "undefined"
+        ? (localStorage.getItem("devlab-layout-mode") as LayoutMode | null)
+        : null;
+    return stored === "auto" ? "auto" : "manual";
   });
   const [uiFontSize, setUiFontSize] = useState<number>(() => {
     const stored =
@@ -215,6 +223,16 @@ export const App: React.FC = () => {
       }
       return next;
     });
+  const toggleLayoutMode = () =>
+    setLayoutMode((m) => {
+      const next: LayoutMode = m === "manual" ? "auto" : "manual";
+      try {
+        localStorage.setItem("devlab-layout-mode", next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
 
   const handleResetEdges = () => setEdgeAdjustments({});
   const handleResetLayout = () => {
@@ -314,6 +332,7 @@ export const App: React.FC = () => {
           nodePositions={nodePositions}
           editEdgesMode={editEdgesMode}
           edgeShape={edgeShape}
+          layoutMode={layoutMode}
           theme={theme}
           onNodeAdjust={handleNodeAdjust}
           onEdgeAdjust={handleEdgeAdjust}
@@ -339,9 +358,11 @@ export const App: React.FC = () => {
       onToggleTheme={toggleTheme}
       onToggleEditEdges={toggleEditEdgesMode}
       onToggleEdgeShape={toggleEdgeShape}
+      onToggleLayoutMode={toggleLayoutMode}
       onResetEdges={handleResetEdges}
       onResetLayout={handleResetLayout}
       onFontSizeChange={handleFontSize}
+      layoutMode={layoutMode}
     />
   );
 };

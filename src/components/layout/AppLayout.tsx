@@ -13,8 +13,10 @@ type AppLayoutProps = {
   theme: "light" | "dark";
   editEdgesMode: boolean;
   edgeShape: "curved" | "straight";
+  layoutMode: "manual" | "auto";
   onToggleEditEdges: () => void;
   onToggleEdgeShape: () => void;
+  onToggleLayoutMode: () => void;
   onResetEdges: () => void;
   onResetLayout: () => void;
   uiFontSize: number;
@@ -35,6 +37,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   edgeShape,
   onToggleEditEdges,
   onToggleEdgeShape,
+  layoutMode,
+  onToggleLayoutMode,
   onResetEdges,
   onResetLayout,
   uiFontSize,
@@ -179,6 +183,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             title="Alterna entre edges curvos o rectos"
           >
             {edgeShape === "curved" ? "Edges: curved" : "Edges: straight"}
+          </button>
+          <button
+            onClick={onToggleLayoutMode}
+            style={{
+              fontSize: 12,
+              padding: "4px 12px",
+              borderRadius: 999,
+              border: `1px solid ${ui.buttonBorder}`,
+              background: ui.buttonBg,
+              color: ui.buttonFg,
+              cursor: "pointer"
+            }}
+            title="Alterna entre distribución automática y manual"
+          >
+            {layoutMode === "auto" ? "Layout: auto" : "Layout: manual"}
           </button>
           <button
             onClick={onResetEdges}

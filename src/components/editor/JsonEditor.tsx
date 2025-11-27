@@ -14,235 +14,372 @@ type JsonEditorProps = {
 // Ejemplo por defecto (el que estabas usando)
 const DEFAULT_EXAMPLE = `{
   "lab": {
-    "name": "DevOps Lab - CI/CD + Artifact Repo",
-    "description": "CI server with Bamboo agent, Nexus and shared libraries",
-    "version": "1.0",
-    "author": "Andrei Ionut Hrisca",
-    "updatedAt": "2024-06-10",
-    "environment": "lab",
-    "domain": "CI/CD & Artifacts",
-    "tags": ["on-prem", "ci-cd", "demo"],
-    "ownerTeam": "Platform Engineering",
+    "name": "Color Mesh Lab",
+    "description": "Demo con 4 máquinas enlazadas con bordes coloridos, ideal como plantilla genérica.",
+    "version": "1.1.0",
+    "author": "Sample Data",
+    "updatedAt": "2024-12-01",
+    "environment": "demo",
+    "domain": "platform mesh",
+    "tags": ["demo", "colorful", "mesh", "sample"],
+    "ownerTeam": "Platform Guild",
     "links": {
-      "documentation": "https://confluence.example.com/devops-lab",
-      "runbook": "https://confluence.example.com/devops-lab-runbook",
-      "repo": "https://bitbucket.example.com/scm/devops/devops-lab-diagrams.git"
+      "documentation": "https://docs.example.com/labs/color-mesh",
+      "runbook": "https://docs.example.com/labs/color-mesh/runbook",
+      "repo": "https://example.com/repos/color-mesh"
     }
   },
   "nodes": [
     {
-      "id": "fsw-server-03",
-      "label": "FSW-Server-03",
+      "id": "atlas-control",
+      "label": "Atlas Control",
       "type": "machine",
       "status": "running",
-      "os": "Windows Server 2019",
-      "role": "CI Server",
-      "permissions": ["anhh", "anrv", "localadmin"],
-      "tags": ["on-prem", "bamboo-agent"],
-      "fqdn": "FSW-Server-03.deimos-space.com",
-      "ip": "10.10.20.15",
-      "location": {
-        "datacenter": "MAD-DC1",
-        "rack": "R12",
-        "zone": "on-prem"
-      },
-      "capacity": {
-        "cpuCores": 8,
-        "ramGB": 32,
-        "diskGB": 500
-      },
-      "backup": {
-        "enabled": true,
-        "policy": "daily-7d-retention"
-      },
+      "os": "Ubuntu 22.04",
+      "role": "Workflow Orchestrator",
+      "permissions": ["ops", "automation"],
+      "tags": ["kubernetes", "orchestration", "north"],
+      "fqdn": "atlas-control.mesh.lab",
+      "ip": "10.20.0.10",
+      "location": { "datacenter": "Lab-DC1", "rack": "R11", "zone": "edge" },
+      "capacity": { "cpuCores": 8, "ramGB": 32, "diskGB": 512 },
+      "backup": { "enabled": true, "policy": "daily-7d" },
       "libraries": [
         {
           "id": "lib-docker-cli",
           "label": "Docker CLI",
           "type": "container-tool",
-          "version": "20.10.7",
-          "description": "Docker Command Line Interface for container management",
-          "path": "C:\\\\Program Files\\\\Docker\\\\docker.exe",
-          "source": {
-            "packageManager": "manual-install",
-            "downloadUrl": "https://www.docker.com/",
-            "managedBy": "ansible"
-          }
+          "version": "24.0.2",
+          "path": "/usr/bin/docker"
         },
         {
-          "id": "lib-jdk17",
-          "label": "OpenJDK 17",
-          "type": "java-runtime",
-          "version": "17.0.8",
-          "description": "OpenJDK 17 Runtime Environment",
-          "path": "C:\\\\Program Files\\\\Java\\\\jdk-17",
-          "source": {
-            "packageManager": "manual-install",
-            "downloadUrl": "https://adoptium.net/",
-            "managedBy": "ansible"
-          }
+          "id": "lib-helm",
+          "label": "Helm",
+          "type": "k8s-cli",
+          "version": "3.15.2",
+          "path": "/usr/local/bin/helm"
         }
       ],
       "services": [
         {
-          "id": "svc-bamboo-agent1",
-          "label": "Bamboo Agent 1",
-          "type": "ci-agent",
-          "version": "8.3.4",
-          "description": "Bamboo build agent for CI/CD pipelines",
-          "ports": [
-            {
-              "port": 8085,
-              "protocol": "HTTP",
-              "description": "Bamboo agent communication port",
-              "exposed": false
-            }
-          ],
-          "ownerTeam": "CI/CD Team",
-          "repo": "https://bitbucket.example.com/scm/ci/bamboo-agent-config.git",
-          "deployment": {
-            "method": "ansible",
-            "playbook": "ansible/roles/bamboo-agent",
-            "pipelineId": "BAMBOO-PLAN-KEY"
-          },
-          "monitoring": {
-            "prometheusTarget": "fsw-server-03:9100",
-            "dashboards": [
-              "https://grafana.example.com/d/bamboo-agent/bamboo-agent-overview"
-            ]
-          },
-          "logging": {
-            "system": "loki",
-            "query": "{app=\\"bamboo-agent1\\"}"
-          },
-          "sla": {
-            "criticality": "high",
-            "availabilityTarget": "99.5"
-          }
+          "id": "svc-flow-runner",
+          "label": "Flow Runner",
+          "type": "orchestrator",
+          "version": "3.2.1",
+          "description": "Schedules pipelines across the mesh",
+          "ports": [{ "port": 9090, "protocol": "HTTPS", "description": "API" }],
+          "ownerTeam": "Automation Squad",
+          "monitoring": { "dashboards": ["https://dash.example.com/flow-runner"] }
         }
       ]
     },
     {
-      "id": "nexus-server-01",
-      "label": "nexus3.deimos-space.com",
+      "id": "nebula-api",
+      "label": "Nebula API",
       "type": "machine",
       "status": "maintenance",
-      "os": "Rocky Linux 9",
-      "role": "Artifact Repository",
-      "tags": ["on-prem", "nexus"],
-      "fqdn": "nexus3.deimos-space.com",
-      "ip": "10.10.30.20",
-      "location": {
-        "datacenter": "MAD-DC1",
-        "rack": "R15",
-        "zone": "on-prem"
-      },
-      "capacity": {
-        "cpuCores": 8,
-        "ramGB": 32,
-        "diskGB": 2000
-      },
-      "backup": {
-        "enabled": true,
-        "policy": "daily-30d-retention"
-      },
+      "os": "Fedora 40",
+      "role": "API Edge",
+      "permissions": ["edge-team", "readers"],
+      "tags": ["api-gateway", "workers", "blue"],
+      "fqdn": "nebula-api.mesh.lab",
+      "ip": "10.20.1.20",
+      "location": { "datacenter": "Lab-DC1", "rack": "R07", "zone": "core" },
+      "capacity": { "cpuCores": 12, "ramGB": 48, "diskGB": 1024 },
+      "backup": { "enabled": true, "policy": "hourly-24h" },
+      "libraries": [
+        {
+          "id": "lib-node18",
+          "label": "Node.js 18",
+          "type": "runtime",
+          "version": "18.20.3",
+          "path": "/usr/local/bin/node"
+        },
+        {
+          "id": "lib-rabbitmq-cli",
+          "label": "RabbitMQ CLI",
+          "type": "messaging-tool",
+          "version": "3.12",
+          "path": "/usr/bin/rabbitmqadmin"
+        }
+      ],
       "services": [
         {
-          "id": "svc-nexus",
-          "label": "Nexus 3",
-          "type": "artifact-repo",
-          "version": "3.x",
-          "description": "Nexus 3 artifact repository for Maven, npm and Docker",
-          "ports": [
-            {
-              "port": 18161,
-              "protocol": "HTTPS",
-              "description": "Docker/Artifacts endpoint",
-              "exposed": true
-            }
-          ],
-          "ownerTeam": "Platform Engineering",
-          "repo": "https://bitbucket.example.com/scm/infra/nexus-config.git",
-          "deployment": {
-            "method": "ansible",
-            "playbook": "ansible/roles/nexus3",
-            "pipelineId": "INFRA-NEXUS-DEPLOY"
-          },
-          "monitoring": {
-            "prometheusTarget": "nexus3.deimos-space.com:9100",
-            "dashboards": [
-              "https://grafana.example.com/d/nexus/nexus-overview"
-            ]
-          },
-          "logging": {
-            "system": "loki",
-            "query": "{app=\\"nexus3\\"}"
-          },
-          "sla": {
-            "criticality": "high",
-            "availabilityTarget": "99.9"
-          }
+          "id": "svc-api-gateway",
+          "label": "API Gateway",
+          "type": "gateway",
+          "version": "1.8.0",
+          "description": "Routes and authenticates north-south traffic",
+          "ports": [{ "port": 443, "protocol": "HTTPS", "exposed": true }],
+          "ownerTeam": "Edge Team"
+        },
+        {
+          "id": "svc-async-workers",
+          "label": "Async Workers",
+          "type": "workers",
+          "version": "2.5.1",
+          "description": "Processes background jobs",
+          "ports": [{ "port": 5672, "protocol": "AMQP", "description": "Queue listener" }],
+          "ownerTeam": "Edge Team"
+        }
+      ]
+    },
+    {
+      "id": "lumen-data",
+      "label": "Lumen Data",
+      "type": "machine",
+      "status": "running",
+      "os": "Debian 12",
+      "role": "Data Services",
+      "permissions": ["data-team", "ops"],
+      "tags": ["database", "cache", "green"],
+      "fqdn": "lumen-data.mesh.lab",
+      "ip": "10.20.2.30",
+      "location": { "datacenter": "Lab-DC2", "rack": "R03", "zone": "storage" },
+      "capacity": { "cpuCores": 16, "ramGB": 64, "diskGB": 2048 },
+      "backup": { "enabled": true, "policy": "snapshots-30d" },
+      "libraries": [
+        {
+          "id": "lib-backup-agent",
+          "label": "Backup Agent",
+          "type": "snapshot-tool",
+          "version": "2.4",
+          "path": "/opt/backup-agent"
+        }
+      ],
+      "services": [
+        {
+          "id": "svc-aurora-db",
+          "label": "Aurora DB",
+          "type": "database",
+          "version": "14.10",
+          "description": "Primary relational store",
+          "ports": [{ "port": 5432, "protocol": "TCP", "description": "Postgres" }],
+          "ownerTeam": "Data Mesh"
+        },
+        {
+          "id": "svc-cache",
+          "label": "Stellar Cache",
+          "type": "cache",
+          "version": "7.2",
+          "description": "Hot-path caching layer",
+          "ports": [{ "port": 6379, "protocol": "TCP" }],
+          "ownerTeam": "Data Mesh"
+        }
+      ]
+    },
+    {
+      "id": "prism-observability",
+      "label": "Prism Observability",
+      "type": "machine",
+      "status": "running",
+      "os": "Ubuntu 24.04",
+      "role": "Telemetry Stack",
+      "permissions": ["observability", "ops"],
+      "tags": ["metrics", "logging", "purple"],
+      "fqdn": "prism-observability.mesh.lab",
+      "ip": "10.20.3.40",
+      "location": { "datacenter": "Lab-DC2", "rack": "R09", "zone": "observability" },
+      "capacity": { "cpuCores": 8, "ramGB": 32, "diskGB": 1500 },
+      "backup": { "enabled": true, "policy": "daily-14d" },
+      "theme": "dark",
+      "libraries": [
+        {
+          "id": "lib-otel-collector",
+          "label": "OTel Collector",
+          "type": "telemetry-lib",
+          "version": "0.94",
+          "path": "/opt/otelcol"
+        }
+      ],
+      "services": [
+        {
+          "id": "svc-metrics",
+          "label": "Pulse Metrics",
+          "type": "monitoring",
+          "version": "2.1.0",
+          "description": "Scrapes and stores metrics",
+          "ports": [{ "port": 9091, "protocol": "HTTP" }],
+          "ownerTeam": "Observability"
+        },
+        {
+          "id": "svc-logs",
+          "label": "Signal Logs",
+          "type": "logging",
+          "version": "3.0.0",
+          "description": "Central log pipeline",
+          "ports": [{ "port": 3100, "protocol": "HTTP" }],
+          "ownerTeam": "Observability"
         }
       ]
     }
   ],
   "edges": [
     {
-      "id": "net-bamboo-to-nexus",
-      "from": "svc-bamboo-agent1",
-      "to": "svc-nexus",
+      "id": "edge-flow-to-api",
+      "from": "svc-flow-runner",
+      "to": "svc-api-gateway",
       "kind": "communicates_with",
-      "label": "publish artifacts",
-      "color": "#10b981",
-      "bend": 50,
-      "curveOffset": { "x": -12 },
-      "labelOffset": { "y": -22 },
-      "meta": {
-        "protocol": "HTTPS",
-        "port": 18161,
-        "direction": "outbound",
-        "network": {
-          "sourceSubnet": "10.10.20.0/24",
-          "targetSubnet": "10.10.30.0/24",
-          "firewallRule": "FW-CI-TO-NEXUS-HTTPS"
-        },
-        "security": {
-          "auth": "basic-auth",
-          "tls": "internal-ca",
-          "sensitiveData": false
-        }
-      }
+      "label": "triggers deployments",
+      "color": "#22c55e",
+      "bend": 60,
+      "curveOffset": { "x": -20 },
+      "labelOffset": { "y": -24 },
+      "meta": { "protocol": "HTTPS", "port": 443, "direction": "outbound" }
     },
     {
-      "id": "dep-bamboo-docker",
-      "from": "svc-bamboo-agent1",
-      "to": "lib-docker-cli",
-      "kind": "depends_on",
-      "label": "docker builds",
-      "color": "#f97316",
-      "bend": -30,
+      "id": "edge-api-to-workers",
+      "from": "svc-api-gateway",
+      "to": "svc-async-workers",
+      "kind": "communicates_with",
+      "label": "dispatches jobs",
+      "color": "#06b6d4",
+      "bend": -35,
       "curveOffset": { "y": -10 },
-      "labelOffset": { "y": 18 },
-      "meta": {
-        "reason": "Required for Docker-based build jobs"
-      }
+      "labelOffset": { "y": 16 },
+      "meta": { "protocol": "AMQP", "port": 5672 }
     },
     {
-      "id": "dep-bamboo-jdk",
-      "from": "svc-bamboo-agent1",
-      "to": "lib-jdk17",
+      "id": "edge-workers-to-db",
+      "from": "svc-async-workers",
+      "to": "svc-aurora-db",
+      "kind": "communicates_with",
+      "label": "writes events",
+      "color": "#f59e0b",
+      "bend": 18,
+      "curveOffset": { "x": 18 },
+      "labelOffset": { "x": 14 },
+      "meta": { "protocol": "TCP", "port": 5432 }
+    },
+    {
+      "id": "edge-api-to-cache",
+      "from": "svc-api-gateway",
+      "to": "svc-cache",
+      "kind": "communicates_with",
+      "label": "reads cache",
+      "color": "#a855f7",
+      "bend": 12,
+      "curveOffset": { "x": -12 },
+      "labelOffset": { "y": -18 },
+      "meta": { "protocol": "TCP", "port": 6379 }
+    },
+    {
+      "id": "edge-metrics-orch",
+      "from": "svc-metrics",
+      "to": "svc-flow-runner",
+      "kind": "scrapes_metrics",
+      "label": "metrics pull",
+      "color": "#0ea5e9",
+      "bend": -12,
+      "curveOffset": { "y": 14 },
+      "labelOffset": { "y": 14 },
+      "meta": { "protocol": "HTTP", "port": 9090, "direction": "outbound" }
+    },
+    {
+      "id": "edge-metrics-api",
+      "from": "svc-metrics",
+      "to": "svc-api-gateway",
+      "kind": "scrapes_metrics",
+      "label": "metrics pull",
+      "color": "#14b8a6",
+      "bend": 6,
+      "curveOffset": { "x": 16 },
+      "labelOffset": { "x": 12 },
+      "meta": { "protocol": "HTTP", "port": 443 }
+    },
+    {
+      "id": "edge-metrics-db",
+      "from": "svc-metrics",
+      "to": "svc-aurora-db",
+      "kind": "scrapes_metrics",
+      "label": "metrics pull",
+      "color": "#f472b6",
+      "bend": -28,
+      "curveOffset": { "x": -18 },
+      "labelOffset": { "y": -14 },
+      "meta": { "protocol": "HTTP", "port": 9187 }
+    },
+    {
+      "id": "edge-logs-workers",
+      "from": "svc-async-workers",
+      "to": "svc-logs",
+      "kind": "sends_logs",
+      "label": "ship logs",
+      "color": "#fb7185",
+      "bend": 32,
+      "curveOffset": { "y": 12 },
+      "labelOffset": { "x": 10 },
+      "meta": { "protocol": "HTTP", "port": 3100, "direction": "outbound" }
+    },
+    {
+      "id": "edge-logs-db",
+      "from": "svc-aurora-db",
+      "to": "svc-logs",
+      "kind": "sends_logs",
+      "label": "audit trail",
+      "color": "#f97316",
+      "bend": -18,
+      "curveOffset": { "x": 8 },
+      "labelOffset": { "y": 18 },
+      "meta": { "protocol": "HTTP", "port": 3100, "direction": "outbound" }
+    },
+    {
+      "id": "dep-flow-helm",
+      "from": "svc-flow-runner",
+      "to": "lib-helm",
       "kind": "depends_on",
-      "label": "runs on JDK 17",
+      "label": "render charts",
       "color": "#6366f1",
       "bend": 0,
-      "curveOffset": { "x": 20 },
-      "labelOffset": { "x": 16 },
-      "meta": {
-        "reason": "Agent runtime",
-        "mandatory": true
-      }
+      "curveOffset": { "x": 10 },
+      "labelOffset": { "x": 12 },
+      "meta": { "reason": "Push workloads" }
+    },
+    {
+      "id": "dep-api-node",
+      "from": "svc-api-gateway",
+      "to": "lib-node18",
+      "kind": "depends_on",
+      "label": "node runtime",
+      "color": "#facc15",
+      "bend": -8,
+      "curveOffset": { "y": -10 },
+      "labelOffset": { "y": 16 },
+      "meta": { "reason": "Runtime" }
+    },
+    {
+      "id": "dep-db-backup",
+      "from": "svc-aurora-db",
+      "to": "lib-backup-agent",
+      "kind": "depends_on",
+      "label": "snapshots",
+      "color": "#22c55e",
+      "bend": 14,
+      "curveOffset": { "x": -14 },
+      "labelOffset": { "x": -10 },
+      "meta": { "reason": "Nightly backups" }
+    },
+    {
+      "id": "dep-logs-otel",
+      "from": "svc-logs",
+      "to": "lib-otel-collector",
+      "kind": "depends_on",
+      "label": "collects signals",
+      "color": "#8b5cf6",
+      "bend": 10,
+      "curveOffset": { "x": 6 },
+      "labelOffset": { "y": -12 },
+      "meta": { "reason": "Ship telemetry" }
     }
-  ]
+  ],
+  "layout": {
+    "nodes": {
+      "atlas-control": { "x": 100, "y": 260 },
+      "nebula-api": { "x": 760, "y": 80 },
+      "prism-observability": { "x": 780, "y": 520 },
+      "lumen-data": { "x": 1360, "y": 320 }
+    }
+  }
 }
 `;
 

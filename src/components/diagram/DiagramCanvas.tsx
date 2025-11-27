@@ -25,12 +25,14 @@ import { LibraryNode } from "./nodeTypes/LibraryNode";
 import { AdjustableEdge } from "./edgeTypes/AdjustableEdge";
 
 import dagre from "dagre";
+import ELK from "elkjs/lib/elk.bundled.js";
 
 type DiagramCanvasProps = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   edgeAdjustments: EdgeAdjustments;
   editEdgesMode: boolean;
+  layoutMode: "manual" | "auto";
   nodeAdjustments: Record<string, { width?: number; height?: number }>;
   nodePositions: Record<string, { x: number; y: number }>;
   theme: "light" | "dark";
@@ -187,6 +189,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
   nodePositions,
   onNodesMove,
   editEdgesMode,
+  layoutMode,
   edgeShape,
   theme,
   onEdgeAdjust,
@@ -194,6 +197,10 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
   onEdgeSelect
 }) => {
   const isDark = theme === "dark";
+  const elk = useMemo(() => new ELK(), []);
+  const [autoPositions, setAutoPositions] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
 
   const layoutNodes = useMemo(() => {
     const machines = nodes.filter((n) => n.kind === "machine");
@@ -297,7 +304,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
           onResize: (size: { width: number; height: number }) =>
             onNodeAdjust(m.id, size)
         },
-        draggable: true,
+        draggable: layoutMode === "manual",
         position: { x: 0, y: 0 },
         style: {
           width,
@@ -450,14 +457,23 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
     const childNodes = layoutedMachines.flatMap((m) => buildChildren(m));
 
     const positionedMachines = layoutedMachines.map((m) => {
+      if (layoutMode === "auto") {
+        const auto = autoPositions[m.id];
+        if (auto) {
+          return {
+            ...m,
+            draggable: false,
+            position: { x: auto.x, y: auto.y }
+          };
+        }
+        return { ...m, draggable: false };
+      }
       const saved = nodePositions[m.id];
-      return saved
-        ? { ...m, position: saved }
-        : m;
+      return saved ? { ...m, position: saved } : m;
     });
 
     return [...positionedMachines, ...childNodes];
-  }, [nodes, edges, nodeAdjustments, nodePositions]);
+  }, [autoPositions, layoutMode, nodes, edges, nodeAdjustments, nodePositions]);
 
   const layoutEdges = useMemo(() => {
     const rfEdges: RFEdge[] = edges.map((e) => {
@@ -529,6 +545,69 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
     return rfEdges;
   }, [edgeShape, editEdgesMode, edges, edgeAdjustments, onEdgeAdjust, nodes]);
 
+  useEffect(() => {
+    if (layoutMode !== "auto") {
+      setAutoPositions({});
+      return;
+    }
+    const machines = nodes.filter((n) => n.kind === "machine");
+    if (machines.length === 0) {
+      setAutoPositions({});
+      return;
+    }
+    const edgesBetweenMachines = edges
+      .map((e) => {
+        const fromNode = nodes.find((n) => n.id === e.from);
+        const toNode = nodes.find((n) => n.id === e.to);
+        const fromHost =
+          fromNode?.kind === "machine" ? fromNode.id : fromNode?.host;
+        const toHost =
+          toNode?.kind === "machine" ? toNode.id : toNode?.host;
+        if (!fromHost || !toHost || fromHost === toHost) return null;
+        return { id: e.id, sources: [fromHost], targets: [toHost] };
+      })
+      .filter((e): e is { id: string; sources: string[]; targets: string[] } => e !== null);
+
+    const graph = {
+      id: "root",
+      layoutOptions: {
+        "elk.algorithm": "layered",
+        "elk.spacing.nodeNode": "120",
+        "elk.layered.spacing.nodeNodeBetweenLayers": "160",
+        "elk.direction": "DOWN"
+      },
+      children: machines.map((m) => {
+        const manualSize = nodeAdjustments[m.id] ?? {};
+        const width =
+          manualSize.width != null
+            ? Math.max(manualSize.width, 360)
+            : MACHINE_WIDTH;
+        const height = Math.max(manualSize.height ?? 0, 260);
+        return {
+          id: m.id,
+          width,
+          height
+        };
+      }),
+      edges: edgesBetweenMachines
+    };
+
+    elk
+      .layout(graph)
+      .then((res) => {
+        const positions: Record<string, { x: number; y: number }> = {};
+        res.children?.forEach((c) => {
+          if (c.id && c.x != null && c.y != null) {
+            positions[c.id] = { x: c.x, y: c.y };
+          }
+        });
+        setAutoPositions(positions);
+      })
+      .catch(() => {
+        // ignore layout errors
+      });
+  }, [edgeAdjustments, edges, elk, layoutMode, nodeAdjustments, nodes]);
+
   // ----------------- estado para drag de máquinas ---------------------------
   const [flowNodes, setFlowNodes] = useState<RFNode[]>([]);
   const [flowEdges, setFlowEdges] = useState<RFEdge[]>([]);
@@ -545,6 +624,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      if (layoutMode === "auto") return;
       setFlowNodes((nds) => {
         let changedPosition = false;
         const updated = applyNodeChanges(changes, nds);
@@ -580,16 +660,16 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         return resolved;
       });
     },
-    [onNodesMove]
+    [layoutMode, onNodesMove]
   );
 
   const handleNodeDragStart = useCallback(() => {
-    setIsDragging(true);
-  }, []);
+    if (layoutMode === "manual") setIsDragging(true);
+  }, [layoutMode]);
 
   const handleNodeDragStop = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+    if (layoutMode === "manual") setIsDragging(false);
+  }, [layoutMode]);
 
   return (
     <div style={{ width: "100%", height: "100%" }}>

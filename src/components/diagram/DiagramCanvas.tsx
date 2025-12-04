@@ -679,6 +679,7 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
+        minZoom={0.05}
         onNodesChange={onNodesChange}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}

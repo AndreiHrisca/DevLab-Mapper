@@ -683,12 +683,18 @@ export const DiagramCanvas: React.FC<DiagramCanvasProps> = ({
         onNodesChange={onNodesChange}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
-        onNodeClick={(_, node) => onNodeSelect(node.id)}
+        onNodeClick={(_, node) => {
+          onNodeSelect(node.id);
+          onEdgeSelect(null);
+        }}
         onPaneClick={() => {
           onNodeSelect(null);
           onEdgeSelect(null);
         }}
-        onEdgeClick={(_, edge) => onEdgeSelect(edge.id)}
+        onEdgeClick={(_, edge) => {
+          onEdgeSelect(edge.id);
+          onNodeSelect(null);
+        }}
       >
         <Background gap={16} size={1} />
         <MiniMap

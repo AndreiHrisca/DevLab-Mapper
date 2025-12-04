@@ -27,6 +27,19 @@ function hashText(text: string): string {
   return hash.toString(16);
 }
 
+function computeLayoutKey(raw: any): string | null {
+  try {
+    const payload = {
+      lab: raw?.lab ?? null,
+      nodes: raw?.nodes ?? [],
+      edges: raw?.edges ?? []
+    };
+    return hashText(JSON.stringify(payload));
+  } catch {
+    return null;
+  }
+}
+
 type Theme = "light" | "dark";
 
 export const App: React.FC = () => {
@@ -111,7 +124,7 @@ export const App: React.FC = () => {
         throw new Error("El JSON debe contener 'nodes' y 'edges'.");
       }
       const { nodes, edges } = parseLabJson(parsed);
-      const key = hashText(value);
+      const key = computeLayoutKey(parsed);
       const layout: LayoutState | undefined = parsed.layout;
       setGraphNodes(nodes);
       setGraphEdges(edges);
@@ -136,7 +149,7 @@ export const App: React.FC = () => {
         setNodePositions(positions);
         setNodeAdjustments(sizes);
       }
-      loadAdjustments(key);
+      if (key) loadAdjustments(key);
     } catch {
       setGraphNodes([]);
       setGraphEdges([]);
@@ -268,6 +281,8 @@ export const App: React.FC = () => {
     if (parseError || !jsonText.trim()) return;
     try {
       const parsed = JSON.parse(jsonText);
+      const layoutKeyValue = computeLayoutKey(parsed);
+      if (!layoutKeyValue) return;
       const layout: LayoutState = {
         nodes: {},
         edges: edgeAdjustments
@@ -290,17 +305,16 @@ export const App: React.FC = () => {
       const pretty = JSON.stringify(parsed, null, 2);
       if (pretty !== jsonText) {
         setJsonText(pretty);
-        const key = hashText(pretty);
-        setLayoutKey(key);
-        try {
-          localStorage.setItem(`devlab-layout-${key}`, JSON.stringify({
-            edges: edgeAdjustments,
-            nodes: nodeAdjustments,
-            positions: nodePositions
-          }));
-        } catch {
-          // ignore
-        }
+      }
+      setLayoutKey(layoutKeyValue);
+      try {
+        localStorage.setItem(`devlab-layout-${layoutKeyValue}`, JSON.stringify({
+          edges: edgeAdjustments,
+          nodes: nodeAdjustments,
+          positions: nodePositions
+        }));
+      } catch {
+        // ignore
       }
     } catch {
       // si el JSON es inválido, no intentamos sincronizar

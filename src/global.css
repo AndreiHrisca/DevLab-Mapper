@@ -1,25 +1,96 @@
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
   margin: 0;
   padding: 0;
   color-scheme: light;
+
+  --app-bg: #e8eef5;
+  --app-bg-image:
+    radial-gradient(circle at 12% 14%, rgba(15, 118, 110, 0.18), transparent 32%),
+    radial-gradient(circle at 86% 18%, rgba(14, 165, 233, 0.14), transparent 26%),
+    linear-gradient(180deg, #f8fbfd 0%, #e8eef5 100%);
+  --surface-1: rgba(255, 255, 255, 0.9);
+  --surface-2: #ffffff;
+  --surface-3: #eef4f8;
+  --surface-inverse: #0f172a;
+  --border-color: #d6dee8;
+  --border-strong: #b7c5d4;
+  --text-primary: #102033;
+  --text-secondary: #3e536a;
+  --text-muted: #64748b;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: rgba(15, 118, 110, 0.12);
+  --accent-contrast: #f0fdfa;
+  --info: #0284c7;
+  --info-soft: rgba(2, 132, 199, 0.12);
+  --danger: #b91c1c;
+  --danger-soft: rgba(220, 38, 38, 0.14);
+  --shadow-soft: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --shadow-strong: 0 18px 42px rgba(15, 23, 42, 0.14);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
+
+  --app-bg: #07111f;
+  --app-bg-image:
+    radial-gradient(circle at 14% 16%, rgba(13, 148, 136, 0.2), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(2, 132, 199, 0.16), transparent 22%),
+    linear-gradient(180deg, #08111f 0%, #07111f 100%);
+  --surface-1: rgba(9, 18, 32, 0.88);
+  --surface-2: #0c1728;
+  --surface-3: #101d31;
+  --surface-inverse: #eff6ff;
+  --border-color: #223149;
+  --border-strong: #32455f;
+  --text-primary: #e2e8f0;
+  --text-secondary: #c3d0df;
+  --text-muted: #93a4b8;
+  --accent: #2dd4bf;
+  --accent-strong: #14b8a6;
+  --accent-soft: rgba(45, 212, 191, 0.12);
+  --accent-contrast: #042f2e;
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --shadow-soft: 0 14px 32px rgba(2, 8, 23, 0.36);
+  --shadow-strong: 0 20px 46px rgba(2, 8, 23, 0.48);
 }
 
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
 }
 
-body {
-  background: #f9fafb;
+* {
+  box-sizing: border-box;
 }
 
-[data-theme="dark"] body {
-  background: #0f172a;
+body {
+  background-color: var(--app-bg);
+  background-image: var(--app-bg-image);
+  background-attachment: fixed;
+  color: var(--text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-primary);
 }

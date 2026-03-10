@@ -48,13 +48,17 @@ export const App: React.FC = () => {
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
   const [edgeAdjustments, setEdgeAdjustments] = useState<EdgeAdjustments>({});
   const [nodeAdjustments, setNodeAdjustments] = useState<NodeAdjustments>({});
+  const [expandedMachines, setExpandedMachines] = useState<
+    Record<string, boolean>
+  >({});
   const [nodePositions, setNodePositions] = useState<
     Record<string, { x: number; y: number }>
   >({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [showEditor, setShowEditor] = useState(true);
-  const [showSidepanel, setShowSidepanel] = useState(true);
+  const [showEditor, setShowEditor] = useState(false);
+  const [showSidepanel, setShowSidepanel] = useState(false);
+  const [showEdges, setShowEdges] = useState(true);
   const [parseError, setParseError] = useState<string | null>(null);
   const [layoutKey, setLayoutKey] = useState<string | null>(null);
   const [editEdgesMode, setEditEdgesMode] = useState<boolean>(false);
@@ -132,6 +136,7 @@ export const App: React.FC = () => {
       setSelectedEdgeId(null);
       setEdgeAdjustments({});
       setNodeAdjustments({});
+      setExpandedMachines({});
       setNodePositions({});
       setLayoutKey(key);
       setParseError(null);
@@ -153,7 +158,8 @@ export const App: React.FC = () => {
     } catch {
       setGraphNodes([]);
       setGraphEdges([]);
-      setParseError("JSON inválido o schema incompleto.");
+      setExpandedMachines({});
+      setParseError("Invalid JSON or incomplete schema.");
     }
   };
 
@@ -226,6 +232,16 @@ export const App: React.FC = () => {
     setTheme((t) => (t === "light" ? "dark" : "light"));
 
   const toggleEditEdgesMode = () => setEditEdgesMode((v) => !v);
+  const toggleEdgesVisibility = () => {
+    setShowEdges((visible) => {
+      const next = !visible;
+      if (!next) {
+        setSelectedEdgeId(null);
+        setEditEdgesMode(false);
+      }
+      return next;
+    });
+  };
   const toggleEdgeShape = () =>
     setEdgeShape((s) => {
       const next: EdgeShape = s === "curved" ? "straight" : "curved";
@@ -277,6 +293,15 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleToggleMachineDetails = useCallback((nodeId: string) => {
+    setSelectedNodeId(nodeId);
+    setSelectedEdgeId(null);
+    setExpandedMachines((prev) => ({
+      ...prev,
+      [nodeId]: !prev[nodeId]
+    }));
+  }, []);
+
   const syncLayoutIntoJson = useCallback(() => {
     if (parseError || !jsonText.trim()) return;
     try {
@@ -317,7 +342,7 @@ export const App: React.FC = () => {
         // ignore
       }
     } catch {
-      // si el JSON es inválido, no intentamos sincronizar
+      // si el JSON es invalido, no intentamos sincronizar
     }
   }, [parseError, jsonText, edgeAdjustments, nodeAdjustments, nodePositions]);
 
@@ -327,12 +352,14 @@ export const App: React.FC = () => {
       editEdgesMode={editEdgesMode}
       edgeShape={edgeShape}
       uiFontSize={uiFontSize}
+      showEdges={showEdges}
       editor={
         <JsonEditor
           value={jsonText}
           errorMessage={parseError ?? undefined}
           fontSize={uiFontSize}
           mono={monoEditor}
+          theme={theme}
           onToggleMono={toggleMonoEditor}
           onChange={handleJsonChange}
         />
@@ -351,8 +378,11 @@ export const App: React.FC = () => {
           onNodeAdjust={handleNodeAdjust}
           onEdgeAdjust={handleEdgeAdjust}
           onNodesMove={handleNodesMove}
+          machineDetailsExpanded={expandedMachines}
+          onToggleMachineDetails={handleToggleMachineDetails}
           onNodeSelect={setSelectedNodeId}
           onEdgeSelect={setSelectedEdgeId}
+          showEdges={showEdges}
         />
       }
       sidepanel={
@@ -371,6 +401,7 @@ export const App: React.FC = () => {
       onToggleSidepanel={() => setShowSidepanel((v) => !v)}
       onToggleTheme={toggleTheme}
       onToggleEditEdges={toggleEditEdgesMode}
+      onToggleEdgesVisibility={toggleEdgesVisibility}
       onToggleEdgeShape={toggleEdgeShape}
       onToggleLayoutMode={toggleLayoutMode}
       onResetEdges={handleResetEdges}

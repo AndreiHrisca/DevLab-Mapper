@@ -1,4 +1,3 @@
-// src/components/layout/AppLayout.tsx
 import React, { useState, useRef, useEffect } from "react";
 
 type AppLayoutProps = {
@@ -12,9 +11,11 @@ type AppLayoutProps = {
   onToggleTheme: () => void;
   theme: "light" | "dark";
   editEdgesMode: boolean;
+  showEdges: boolean;
   edgeShape: "curved" | "straight";
   layoutMode: "manual" | "auto";
   onToggleEditEdges: () => void;
+  onToggleEdgesVisibility: () => void;
   onToggleEdgeShape: () => void;
   onToggleLayoutMode: () => void;
   onResetEdges: () => void;
@@ -22,6 +23,8 @@ type AppLayoutProps = {
   uiFontSize: number;
   onFontSizeChange: (delta: number) => void;
 };
+
+type ButtonTone = "default" | "accent" | "danger";
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
   editor,
@@ -34,8 +37,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onToggleTheme,
   theme,
   editEdgesMode,
+  showEdges,
   edgeShape,
   onToggleEditEdges,
+  onToggleEdgesVisibility,
   onToggleEdgeShape,
   layoutMode,
   onToggleLayoutMode,
@@ -46,18 +51,26 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const isDark = theme === "dark";
   const ui = {
-    bg: isDark ? "#0b1220" : "#f9fafb",
-    fg: isDark ? "#e2e8f0" : "#111827",
-    border: isDark ? "#1f2937" : "#e5e7eb",
-    card: isDark ? "#0f172a" : "#ffffff",
-    accent: isDark ? "#0ea5e9" : "#111827",
-    buttonBg: isDark ? "#0f172a" : "#ffffff",
-    buttonFg: isDark ? "#e2e8f0" : "#111827",
-    buttonBorder: isDark ? "#1f2937" : "#e5e7eb"
+    shell: "var(--surface-1)",
+    panel: "var(--surface-2)",
+    panelAlt: "var(--surface-3)",
+    border: "var(--border-color)",
+    borderStrong: "var(--border-strong)",
+    text: "var(--text-primary)",
+    muted: "var(--text-muted)",
+    secondary: "var(--text-secondary)",
+    accent: "var(--accent)",
+    accentStrong: "var(--accent-strong)",
+    accentSoft: "var(--accent-soft)",
+    accentContrast: "var(--accent-contrast)",
+    info: "var(--info)",
+    danger: "var(--danger)",
+    shadow: "var(--shadow-soft)",
+    strongShadow: "var(--shadow-strong)"
   };
-  // Anchos iniciales de paneles
+
   const [leftWidth, setLeftWidth] = useState(420);
-  const [rightWidth, setRightWidth] = useState(240);
+  const [rightWidth, setRightWidth] = useState(320);
 
   const resizingSide = useRef<"left" | "right" | null>(null);
 
@@ -75,17 +88,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     resizingSide.current = null;
   };
 
-  const handleResize = (e: MouseEvent) => {
+  const handleResize = (event: MouseEvent) => {
     if (!resizingSide.current) return;
 
     if (resizingSide.current === "left") {
-      // ancho = posición X del ratón
-      const newWidth = Math.max(180, Math.min(e.clientX, window.innerWidth - 300));
+      const newWidth = Math.max(
+        260,
+        Math.min(event.clientX - 12, window.innerWidth - 420)
+      );
       setLeftWidth(newWidth);
-    } else if (resizingSide.current === "right") {
-      // ancho = distancia desde borde derecho
-      const newWidth = window.innerWidth - e.clientX;
-      const clamped = Math.max(180, Math.min(newWidth, 600));
+    } else {
+      const newWidth = window.innerWidth - event.clientX - 12;
+      const clamped = Math.max(280, Math.min(newWidth, 640));
       setRightWidth(clamped);
     }
   };
@@ -93,11 +107,84 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   useEffect(() => {
     window.addEventListener("mousemove", handleResize);
     window.addEventListener("mouseup", stopResize);
+
     return () => {
       window.removeEventListener("mousemove", handleResize);
       window.removeEventListener("mouseup", stopResize);
     };
   }, []);
+
+  const clusterStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    minWidth: "fit-content",
+    padding: "10px 12px",
+    borderRadius: 18,
+    border: `1px solid ${ui.border}`,
+    background: ui.panel,
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)"
+  };
+
+  const clusterLabelStyle: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 0.9,
+    textTransform: "uppercase",
+    color: ui.muted
+  };
+
+  const buttonStyle = ({
+    active = false,
+    tone = "default",
+    disabled = false,
+    compact = false
+  }: {
+    active?: boolean;
+    tone?: ButtonTone;
+    disabled?: boolean;
+    compact?: boolean;
+  }): React.CSSProperties => {
+    const palette =
+      tone === "accent"
+        ? {
+            border: active ? ui.accentStrong : ui.borderStrong,
+            background: active ? ui.accent : ui.panel,
+            color: active ? ui.accentContrast : ui.text
+          }
+        : tone === "danger"
+        ? {
+            border: ui.borderStrong,
+            background: active ? ui.danger : ui.panel,
+            color: active ? "#fff5f5" : ui.text
+          }
+        : {
+            border: active ? ui.info : ui.borderStrong,
+            background: active ? ui.accentSoft : ui.panelAlt,
+            color: ui.text
+          };
+
+    return {
+      fontSize: compact ? 11 : 12,
+      fontWeight: 600,
+      padding: compact ? "6px 10px" : "7px 12px",
+      borderRadius: 12,
+      border: `1px solid ${palette.border}`,
+      background: palette.background,
+      color: palette.color,
+      cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? 0.45 : 1,
+      transition:
+        "background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease"
+    };
+  };
+
+  const resizerStyle: React.CSSProperties = {
+    width: 10,
+    cursor: "col-resize",
+    background:
+      "linear-gradient(to bottom, transparent 0%, rgba(148,163,184,0.25) 35%, rgba(148,163,184,0.4) 50%, rgba(148,163,184,0.25) 65%, transparent 100%)"
+  };
 
   return (
     <div
@@ -106,249 +193,219 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         width: "100vw",
         display: "flex",
         flexDirection: "column",
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-        background: ui.bg,
-        color: ui.fg,
+        gap: 12,
+        padding: 12,
+        color: ui.text,
         fontSize: uiFontSize
       }}
     >
-      {/* Top bar */}
       <div
         style={{
-          height: 48,
-          padding: "0 16px",
-          borderBottom: `1px solid ${ui.border}`,
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           justifyContent: "space-between",
-          background: ui.bg
+          gap: 12,
+          flexWrap: "wrap",
+          padding: "14px 16px",
+          borderRadius: 24,
+          border: `1px solid ${ui.border}`,
+          background: ui.shell,
+          boxShadow: ui.shadow,
+          backdropFilter: "blur(16px)"
         }}
       >
-        <div style={{ fontWeight: 600, fontSize: 14 }}>DevLab Mapper</div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={onToggleEditor}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div
             style={{
-              fontSize: 12,
-              padding: "4px 12px",
-              borderRadius: 999,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: showEditor ? ui.accent : ui.buttonBg,
-              color: showEditor ? "#f9fafb" : ui.buttonFg,
-              cursor: "pointer"
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: 0.2
             }}
           >
-            {showEditor ? "Hide JSON" : "Show JSON"}
-          </button>
-          <button
-            onClick={onToggleSidepanel}
-            style={{
-              fontSize: 12,
-              padding: "4px 12px",
-              borderRadius: 999,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: showSidepanel ? ui.accent : ui.buttonBg,
-              color: showSidepanel ? "#f9fafb" : ui.buttonFg,
-              cursor: "pointer"
-            }}
-          >
-            {showSidepanel ? "Hide details" : "Show details"}
-          </button>
-          <button
-            onClick={onToggleEditEdges}
-            style={{
-              fontSize: 12,
-              padding: "4px 12px",
-              borderRadius: 999,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: editEdgesMode ? ui.accent : ui.buttonBg,
-              color: editEdgesMode ? "#f9fafb" : ui.buttonFg,
-              cursor: "pointer"
-            }}
-          >
-            {editEdgesMode ? "Done adjusting edges" : "Adjust edges"}
-          </button>
-          <button
-            onClick={onToggleEdgeShape}
-            style={{
-              fontSize: 12,
-              padding: "4px 12px",
-              borderRadius: 999,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: ui.buttonBg,
-              color: ui.buttonFg,
-              cursor: "pointer"
-            }}
-            title="Alterna entre edges curvos o rectos"
-          >
-            {edgeShape === "curved" ? "Edges: curved" : "Edges: straight"}
-          </button>
-          <button
-            onClick={onToggleLayoutMode}
-            style={{
-              fontSize: 12,
-              padding: "4px 12px",
-              borderRadius: 999,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: ui.buttonBg,
-              color: ui.buttonFg,
-              cursor: "pointer"
-            }}
-            title="Alterna entre distribución automática y manual"
-          >
-            {layoutMode === "auto" ? "Layout: auto" : "Layout: manual"}
-          </button>
-          <button
-            onClick={onResetEdges}
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 8,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: ui.buttonBg,
-              color: ui.buttonFg,
-              cursor: "pointer"
-            }}
-            title="Reset edge offsets/curvas"
-          >
-            Reset edges
-          </button>
-          <button
-            onClick={onResetLayout}
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 8,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: ui.buttonBg,
-              color: ui.buttonFg,
-              cursor: "pointer"
-            }}
-            title="Reset node sizes/positions"
-          >
-            Reset layout
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 11, opacity: 0.8 }}>Font</span>
-            <button
-              onClick={() => onFontSizeChange(-1)}
-              style={{
-                fontSize: 12,
-                padding: "2px 8px",
-                borderRadius: 8,
-                border: `1px solid ${ui.buttonBorder}`,
-                background: ui.buttonBg,
-                color: ui.buttonFg,
-                cursor: "pointer"
-              }}
-              title="Disminuir tamaño de fuente"
-            >
-              A-
-            </button>
-            <button
-              onClick={() => onFontSizeChange(1)}
-              style={{
-                fontSize: 12,
-                padding: "2px 8px",
-                borderRadius: 8,
-                border: `1px solid ${ui.buttonBorder}`,
-                background: ui.buttonBg,
-                color: ui.buttonFg,
-                cursor: "pointer"
-              }}
-              title="Aumentar tamaño de fuente"
-            >
-              A+
-            </button>
+            DevLab Mapper
           </div>
-          <button
-            onClick={onToggleTheme}
+          <div
             style={{
               fontSize: 12,
-              padding: "4px 12px",
-              borderRadius: 999,
-              border: `1px solid ${ui.buttonBorder}`,
-              background: ui.buttonBg,
-              color: ui.buttonFg,
-              cursor: "pointer"
+              color: ui.secondary,
+              maxWidth: 440
             }}
           >
-            {isDark ? "Light theme" : "Dark theme"}
-          </button>
+            Explore the lab, adjust the diagram, and open details only when you
+            need them.
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
+            justifyContent: "flex-end"
+          }}
+        >
+          <div style={clusterStyle}>
+            <div style={clusterLabelStyle}>Panels</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={onToggleEditor}
+                style={buttonStyle({ active: showEditor, tone: "accent" })}
+              >
+                {showEditor ? "Hide JSON" : "Show JSON"}
+              </button>
+              <button
+                onClick={onToggleSidepanel}
+                style={buttonStyle({ active: showSidepanel, tone: "accent" })}
+              >
+                {showSidepanel ? "Hide details" : "Show details"}
+              </button>
+            </div>
+          </div>
+
+          <div style={clusterStyle}>
+            <div style={clusterLabelStyle}>Connections</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={onToggleEdgesVisibility}
+                style={buttonStyle({ active: !showEdges, tone: "accent" })}
+              >
+                {showEdges ? "Hide edges" : "Show edges"}
+              </button>
+              <button
+                onClick={onToggleEditEdges}
+                disabled={!showEdges}
+                style={buttonStyle({
+                  active: editEdgesMode,
+                  disabled: !showEdges
+                })}
+              >
+                {editEdgesMode ? "Finish editing" : "Adjust edges"}
+              </button>
+              <button
+                onClick={onToggleEdgeShape}
+                disabled={!showEdges}
+                style={buttonStyle({ disabled: !showEdges })}
+                title="Toggle curved or straight edges"
+              >
+                {edgeShape === "curved" ? "Curved path" : "Straight path"}
+              </button>
+              <button
+                onClick={onResetEdges}
+                disabled={!showEdges}
+                style={buttonStyle({
+                  disabled: !showEdges,
+                  tone: "danger"
+                })}
+                title="Reset offsets and curvature"
+              >
+                Reset edges
+              </button>
+            </div>
+          </div>
+
+          <div style={clusterStyle}>
+            <div style={clusterLabelStyle}>Diagram</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={onToggleLayoutMode}
+                style={buttonStyle({
+                  active: layoutMode === "auto"
+                })}
+                title="Toggle automatic and manual layout"
+              >
+                {layoutMode === "auto" ? "Auto layout" : "Manual layout"}
+              </button>
+              <button
+                onClick={onResetLayout}
+                style={buttonStyle({ tone: "danger" })}
+                title="Reset node size and position"
+              >
+                Reset layout
+              </button>
+            </div>
+          </div>
+
+          <div style={clusterStyle}>
+            <div style={clusterLabelStyle}>View</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={() => onFontSizeChange(-1)}
+                style={buttonStyle({ compact: true })}
+                title="Decrease font size"
+              >
+                A-
+              </button>
+              <button
+                onClick={() => onFontSizeChange(1)}
+                style={buttonStyle({ compact: true })}
+                title="Increase font size"
+              >
+                A+
+              </button>
+              <button
+                onClick={onToggleTheme}
+                style={buttonStyle({ active: isDark })}
+              >
+                {isDark ? "Light theme" : "Dark theme"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main content */}
       <div
         style={{
           flex: 1,
-          display: "flex",
-          width: "100%",
           minHeight: 0,
-          overflow: "hidden"
+          display: "flex",
+          overflow: "hidden",
+          borderRadius: 26,
+          border: `1px solid ${ui.border}`,
+          background: ui.panel,
+          boxShadow: ui.strongShadow
         }}
       >
-        {/* Panel izquierdo (JSON) */}
         {showEditor && (
           <div
             style={{
               width: leftWidth,
-              minWidth: 20,
-              maxWidth: 700,
-              borderRight: `1px solid ${ui.border}`,
+              minWidth: 260,
+              maxWidth: 760,
               overflow: "hidden",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              background: ui.panel
             }}
           >
             {editor}
           </div>
         )}
 
-        {/* Resizer izquierdo */}
-        {showEditor && (
-          <div
-            onMouseDown={startLeftResize}
-            style={{
-              width: 6,
-              cursor: "col-resize",
-              background:
-                "linear-gradient(to bottom, transparent 0%, #e5e7eb 50%, transparent 100%)"
-            }}
-          />
-        )}
+        {showEditor && <div onMouseDown={startLeftResize} style={resizerStyle} />}
 
-        {/* Diagrama central */}
-        <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            position: "relative",
+            background: ui.panel
+          }}
+        >
           {diagram}
         </div>
 
-        {/* Resizer derecho */}
-        {showSidepanel && (
-          <div
-            onMouseDown={startRightResize}
-            style={{
-              width: 6,
-              cursor: "col-resize",
-              background:
-                "linear-gradient(to bottom, transparent 0%, #e5e7eb 50%, transparent 100%)"
-            }}
-          />
-        )}
+        {showSidepanel && <div onMouseDown={startRightResize} style={resizerStyle} />}
 
-        {/* Panel derecho (Details) */}
         {showSidepanel && (
           <div
             style={{
               width: rightWidth,
-              minWidth: 240,
-              maxWidth: 600,
-              borderLeft: `1px solid ${ui.border}`,
+              minWidth: 280,
+              maxWidth: 640,
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
-              background: ui.card
+              background: ui.panel
             }}
           >
             {sidepanel}

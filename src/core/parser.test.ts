@@ -7,7 +7,8 @@ const baseLab: LabJson = {
     name: "Test Lab",
     description: "Parser test lab",
     version: "1.0",
-    author: "QA"
+    author: "QA",
+    updatedAt: "2026-03-03T00:00:00Z"
   },
   nodes: [
     {

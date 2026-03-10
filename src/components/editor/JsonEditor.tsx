@@ -1,399 +1,30 @@
-// src/components/editor/JsonEditor.tsx
 import React, { useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
+import { sampleLab } from "../../core/sampleLab";
 
 type JsonEditorProps = {
   value: string;
   errorMessage?: string;
   fontSize?: number;
   mono?: boolean;
+  theme: "light" | "dark";
   onToggleMono?: () => void;
   onChange: (value: string) => void;
 };
 
-// Ejemplo por defecto (el que estabas usando)
-const DEFAULT_EXAMPLE = `{
-  "lab": {
-    "name": "Color Mesh Lab",
-    "description": "Demo con 4 máquinas enlazadas con bordes coloridos, ideal como plantilla genérica.",
-    "version": "1.1.0",
-    "author": "Sample Data",
-    "updatedAt": "2024-12-01",
-    "environment": "demo",
-    "domain": "platform mesh",
-    "tags": ["demo", "colorful", "mesh", "sample"],
-    "ownerTeam": "Platform Guild",
-    "links": {
-      "documentation": "https://docs.example.com/labs/color-mesh",
-      "runbook": "https://docs.example.com/labs/color-mesh/runbook",
-      "repo": "https://example.com/repos/color-mesh"
-    }
-  },
-  "nodes": [
-    {
-      "id": "atlas-control",
-      "label": "Atlas Control",
-      "type": "machine",
-      "status": "running",
-      "os": "Ubuntu 22.04",
-      "role": "Workflow Orchestrator",
-      "permissions": ["ops", "automation"],
-      "tags": ["kubernetes", "orchestration", "north"],
-      "fqdn": "atlas-control.mesh.lab",
-      "ip": "10.20.0.10",
-      "location": { "datacenter": "Lab-DC1", "rack": "R11", "zone": "edge" },
-      "capacity": { "cpuCores": 8, "ramGB": 32, "diskGB": 512 },
-      "backup": { "enabled": true, "policy": "daily-7d" },
-      "libraries": [
-        {
-          "id": "lib-docker-cli",
-          "label": "Docker CLI",
-          "type": "container-tool",
-          "version": "24.0.2",
-          "path": "/usr/bin/docker"
-        },
-        {
-          "id": "lib-helm",
-          "label": "Helm",
-          "type": "k8s-cli",
-          "version": "3.15.2",
-          "path": "/usr/local/bin/helm"
-        }
-      ],
-      "services": [
-        {
-          "id": "svc-flow-runner",
-          "label": "Flow Runner",
-          "type": "orchestrator",
-          "version": "3.2.1",
-          "description": "Schedules pipelines across the mesh",
-          "ports": [{ "port": 9090, "protocol": "HTTPS", "description": "API" }],
-          "ownerTeam": "Automation Squad",
-          "monitoring": { "dashboards": ["https://dash.example.com/flow-runner"] }
-        }
-      ]
-    },
-    {
-      "id": "nebula-api",
-      "label": "Nebula API",
-      "type": "machine",
-      "status": "maintenance",
-      "os": "Fedora 40",
-      "role": "API Edge",
-      "permissions": ["edge-team", "readers"],
-      "tags": ["api-gateway", "workers", "blue"],
-      "fqdn": "nebula-api.mesh.lab",
-      "ip": "10.20.1.20",
-      "location": { "datacenter": "Lab-DC1", "rack": "R07", "zone": "core" },
-      "capacity": { "cpuCores": 12, "ramGB": 48, "diskGB": 1024 },
-      "backup": { "enabled": true, "policy": "hourly-24h" },
-      "libraries": [
-        {
-          "id": "lib-node18",
-          "label": "Node.js 18",
-          "type": "runtime",
-          "version": "18.20.3",
-          "path": "/usr/local/bin/node"
-        },
-        {
-          "id": "lib-rabbitmq-cli",
-          "label": "RabbitMQ CLI",
-          "type": "messaging-tool",
-          "version": "3.12",
-          "path": "/usr/bin/rabbitmqadmin"
-        }
-      ],
-      "services": [
-        {
-          "id": "svc-api-gateway",
-          "label": "API Gateway",
-          "type": "gateway",
-          "version": "1.8.0",
-          "description": "Routes and authenticates north-south traffic",
-          "ports": [{ "port": 443, "protocol": "HTTPS", "exposed": true }],
-          "ownerTeam": "Edge Team"
-        },
-        {
-          "id": "svc-async-workers",
-          "label": "Async Workers",
-          "type": "workers",
-          "version": "2.5.1",
-          "description": "Processes background jobs",
-          "ports": [{ "port": 5672, "protocol": "AMQP", "description": "Queue listener" }],
-          "ownerTeam": "Edge Team"
-        }
-      ]
-    },
-    {
-      "id": "lumen-data",
-      "label": "Lumen Data",
-      "type": "machine",
-      "status": "running",
-      "os": "Debian 12",
-      "role": "Data Services",
-      "permissions": ["data-team", "ops"],
-      "tags": ["database", "cache", "green"],
-      "fqdn": "lumen-data.mesh.lab",
-      "ip": "10.20.2.30",
-      "location": { "datacenter": "Lab-DC2", "rack": "R03", "zone": "storage" },
-      "capacity": { "cpuCores": 16, "ramGB": 64, "diskGB": 2048 },
-      "backup": { "enabled": true, "policy": "snapshots-30d" },
-      "libraries": [
-        {
-          "id": "lib-backup-agent",
-          "label": "Backup Agent",
-          "type": "snapshot-tool",
-          "version": "2.4",
-          "path": "/opt/backup-agent"
-        }
-      ],
-      "services": [
-        {
-          "id": "svc-aurora-db",
-          "label": "Aurora DB",
-          "type": "database",
-          "version": "14.10",
-          "description": "Primary relational store",
-          "ports": [{ "port": 5432, "protocol": "TCP", "description": "Postgres" }],
-          "ownerTeam": "Data Mesh"
-        },
-        {
-          "id": "svc-cache",
-          "label": "Stellar Cache",
-          "type": "cache",
-          "version": "7.2",
-          "description": "Hot-path caching layer",
-          "ports": [{ "port": 6379, "protocol": "TCP" }],
-          "ownerTeam": "Data Mesh"
-        }
-      ]
-    },
-    {
-      "id": "prism-observability",
-      "label": "Prism Observability",
-      "type": "machine",
-      "status": "running",
-      "os": "Ubuntu 24.04",
-      "role": "Telemetry Stack",
-      "permissions": ["observability", "ops"],
-      "tags": ["metrics", "logging", "purple"],
-      "fqdn": "prism-observability.mesh.lab",
-      "ip": "10.20.3.40",
-      "location": { "datacenter": "Lab-DC2", "rack": "R09", "zone": "observability" },
-      "capacity": { "cpuCores": 8, "ramGB": 32, "diskGB": 1500 },
-      "backup": { "enabled": true, "policy": "daily-14d" },
-      "theme": "dark",
-      "libraries": [
-        {
-          "id": "lib-otel-collector",
-          "label": "OTel Collector",
-          "type": "telemetry-lib",
-          "version": "0.94",
-          "path": "/opt/otelcol"
-        }
-      ],
-      "services": [
-        {
-          "id": "svc-metrics",
-          "label": "Pulse Metrics",
-          "type": "monitoring",
-          "version": "2.1.0",
-          "description": "Scrapes and stores metrics",
-          "ports": [{ "port": 9091, "protocol": "HTTP" }],
-          "ownerTeam": "Observability"
-        },
-        {
-          "id": "svc-logs",
-          "label": "Signal Logs",
-          "type": "logging",
-          "version": "3.0.0",
-          "description": "Central log pipeline",
-          "ports": [{ "port": 3100, "protocol": "HTTP" }],
-          "ownerTeam": "Observability"
-        }
-      ]
-    }
-  ],
-  "edges": [
-    {
-      "id": "edge-flow-to-api",
-      "from": "svc-flow-runner",
-      "to": "svc-api-gateway",
-      "kind": "communicates_with",
-      "label": "triggers deployments",
-      "color": "#22c55e",
-      "bend": 60,
-      "curveOffset": { "x": -20 },
-      "labelOffset": { "y": -24 },
-      "meta": { "protocol": "HTTPS", "port": 443, "direction": "outbound" }
-    },
-    {
-      "id": "edge-api-to-workers",
-      "from": "svc-api-gateway",
-      "to": "svc-async-workers",
-      "kind": "communicates_with",
-      "label": "dispatches jobs",
-      "color": "#06b6d4",
-      "bend": -35,
-      "curveOffset": { "y": -10 },
-      "labelOffset": { "y": 16 },
-      "meta": { "protocol": "AMQP", "port": 5672 }
-    },
-    {
-      "id": "edge-workers-to-db",
-      "from": "svc-async-workers",
-      "to": "svc-aurora-db",
-      "kind": "communicates_with",
-      "label": "writes events",
-      "color": "#f59e0b",
-      "bend": 18,
-      "curveOffset": { "x": 18 },
-      "labelOffset": { "x": 14 },
-      "meta": { "protocol": "TCP", "port": 5432 }
-    },
-    {
-      "id": "edge-api-to-cache",
-      "from": "svc-api-gateway",
-      "to": "svc-cache",
-      "kind": "communicates_with",
-      "label": "reads cache",
-      "color": "#a855f7",
-      "bend": 12,
-      "curveOffset": { "x": -12 },
-      "labelOffset": { "y": -18 },
-      "meta": { "protocol": "TCP", "port": 6379 }
-    },
-    {
-      "id": "edge-metrics-orch",
-      "from": "svc-metrics",
-      "to": "svc-flow-runner",
-      "kind": "scrapes_metrics",
-      "label": "metrics pull",
-      "color": "#0ea5e9",
-      "bend": -12,
-      "curveOffset": { "y": 14 },
-      "labelOffset": { "y": 14 },
-      "meta": { "protocol": "HTTP", "port": 9090, "direction": "outbound" }
-    },
-    {
-      "id": "edge-metrics-api",
-      "from": "svc-metrics",
-      "to": "svc-api-gateway",
-      "kind": "scrapes_metrics",
-      "label": "metrics pull",
-      "color": "#14b8a6",
-      "bend": 6,
-      "curveOffset": { "x": 16 },
-      "labelOffset": { "x": 12 },
-      "meta": { "protocol": "HTTP", "port": 443 }
-    },
-    {
-      "id": "edge-metrics-db",
-      "from": "svc-metrics",
-      "to": "svc-aurora-db",
-      "kind": "scrapes_metrics",
-      "label": "metrics pull",
-      "color": "#f472b6",
-      "bend": -28,
-      "curveOffset": { "x": -18 },
-      "labelOffset": { "y": -14 },
-      "meta": { "protocol": "HTTP", "port": 9187 }
-    },
-    {
-      "id": "edge-logs-workers",
-      "from": "svc-async-workers",
-      "to": "svc-logs",
-      "kind": "sends_logs",
-      "label": "ship logs",
-      "color": "#fb7185",
-      "bend": 32,
-      "curveOffset": { "y": 12 },
-      "labelOffset": { "x": 10 },
-      "meta": { "protocol": "HTTP", "port": 3100, "direction": "outbound" }
-    },
-    {
-      "id": "edge-logs-db",
-      "from": "svc-aurora-db",
-      "to": "svc-logs",
-      "kind": "sends_logs",
-      "label": "audit trail",
-      "color": "#f97316",
-      "bend": -18,
-      "curveOffset": { "x": 8 },
-      "labelOffset": { "y": 18 },
-      "meta": { "protocol": "HTTP", "port": 3100, "direction": "outbound" }
-    },
-    {
-      "id": "dep-flow-helm",
-      "from": "svc-flow-runner",
-      "to": "lib-helm",
-      "kind": "depends_on",
-      "label": "render charts",
-      "color": "#6366f1",
-      "bend": 0,
-      "curveOffset": { "x": 10 },
-      "labelOffset": { "x": 12 },
-      "meta": { "reason": "Push workloads" }
-    },
-    {
-      "id": "dep-api-node",
-      "from": "svc-api-gateway",
-      "to": "lib-node18",
-      "kind": "depends_on",
-      "label": "node runtime",
-      "color": "#facc15",
-      "bend": -8,
-      "curveOffset": { "y": -10 },
-      "labelOffset": { "y": 16 },
-      "meta": { "reason": "Runtime" }
-    },
-    {
-      "id": "dep-db-backup",
-      "from": "svc-aurora-db",
-      "to": "lib-backup-agent",
-      "kind": "depends_on",
-      "label": "snapshots",
-      "color": "#22c55e",
-      "bend": 14,
-      "curveOffset": { "x": -14 },
-      "labelOffset": { "x": -10 },
-      "meta": { "reason": "Nightly backups" }
-    },
-    {
-      "id": "dep-logs-otel",
-      "from": "svc-logs",
-      "to": "lib-otel-collector",
-      "kind": "depends_on",
-      "label": "collects signals",
-      "color": "#8b5cf6",
-      "bend": 10,
-      "curveOffset": { "x": 6 },
-      "labelOffset": { "y": -12 },
-      "meta": { "reason": "Ship telemetry" }
-    }
-  ],
-  "layout": {
-    "nodes": {
-      "atlas-control": { "x": 100, "y": 260 },
-      "nebula-api": { "x": 760, "y": 80 },
-      "prism-observability": { "x": 780, "y": 520 },
-      "lumen-data": { "x": 1360, "y": 320 }
-    }
-  }
-}
-`;
+const DEFAULT_EXAMPLE = JSON.stringify(sampleLab, null, 2);
 
 export const JsonEditor: React.FC<JsonEditorProps> = ({
   value,
   errorMessage,
   fontSize,
   mono = true,
+  theme,
   onToggleMono,
   onChange
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Cargar ejemplo al arrancar si no hay nada
   useEffect(() => {
     if (!value || value.trim() === "") {
       onChange(DEFAULT_EXAMPLE);
@@ -409,8 +40,8 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
@@ -419,13 +50,42 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
       onChange(text);
     };
     reader.readAsText(file);
-    // reset input para poder cargar el mismo fichero otra vez si hace falta
-    e.target.value = "";
+    event.target.value = "";
   };
 
-  const handleEditorChange = (val?: string) => {
-    onChange(val ?? "");
+  const handleEditorChange = (nextValue?: string) => {
+    onChange(nextValue ?? "");
   };
+
+  const isDark = theme === "dark";
+  const palette = {
+    bg: "var(--surface-1)",
+    panel: "var(--surface-2)",
+    panelAlt: "var(--surface-3)",
+    border: "var(--border-color)",
+    borderStrong: "var(--border-strong)",
+    text: "var(--text-primary)",
+    secondary: "var(--text-secondary)",
+    accent: "var(--accent)",
+    accentContrast: "var(--accent-contrast)",
+    danger: "var(--danger)",
+    dangerSoft: "var(--danger-soft)"
+  };
+
+  const actionButtonStyle = (
+    active = false
+  ): React.CSSProperties => ({
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "7px 11px",
+    borderRadius: 12,
+    border: `1px solid ${active ? palette.accent : palette.borderStrong}`,
+    background: active ? palette.accent : palette.panelAlt,
+    color: active ? palette.accentContrast : palette.text,
+    cursor: "pointer",
+    transition:
+      "background-color 150ms ease, border-color 150ms ease, color 150ms ease"
+  });
 
   return (
     <div
@@ -433,87 +93,75 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        background: "#020617",
-        color: "#e5e7eb"
+        background: palette.bg,
+        color: palette.text
       }}
     >
-      {/* Header del panel */}
       <div
         style={{
-          padding: "10px 12px 6px 12px",
-          borderBottom: "1px solid #111827",
+          padding: "14px 16px 12px",
+          borderBottom: `1px solid ${palette.border}`,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8
+          flexDirection: "column",
+          gap: 12,
+          background: palette.panel
         }}
       >
-        <div style={{ fontSize: 13, fontWeight: 600 }}>Lab JSON</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap"
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Lab JSON</div>
+            <div
+              style={{
+                fontSize: 12,
+                color: palette.secondary,
+                maxWidth: 360
+              }}
+            >
+              Load a file or use the base example to start mapping the lab.
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={handleFileButtonClick} style={actionButtonStyle()}>
+              Load JSON
+            </button>
+            <button onClick={handleUseExample} style={actionButtonStyle()}>
+              Use example
+            </button>
+            {onToggleMono && (
+              <button
+                onClick={onToggleMono}
+                style={actionButtonStyle(mono)}
+                title="Toggle a monospace font in the editor"
+              >
+                {mono ? "Monospace font" : "Normal font"}
+              </button>
+            )}
+          </div>
+        </div>
 
         {errorMessage && (
           <div
             style={{
               fontSize: 11,
-              color: "#fca5a5",
-              background: "rgba(248,113,113,0.08)",
-              border: "1px solid rgba(248,113,113,0.4)",
-              borderRadius: 8,
-              padding: "4px 10px",
-              whiteSpace: "nowrap"
+              color: palette.danger,
+              background: palette.dangerSoft,
+              border: `1px solid ${palette.danger}`,
+              borderRadius: 12,
+              padding: "8px 10px"
             }}
           >
             {errorMessage}
           </div>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={handleFileButtonClick}
-            style={{
-              fontSize: 11,
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px solid #4b5563",
-              background: "#020617",
-              color: "#e5e7eb",
-              cursor: "pointer"
-            }}
-          >
-            Load JSON
-          </button>
-          <button
-            onClick={handleUseExample}
-            style={{
-              fontSize: 11,
-              padding: "4px 10px",
-              borderRadius: 999,
-              border: "1px solid #4b5563",
-              background: "#0f172a",
-              color: "#e5e7eb",
-              cursor: "pointer"
-            }}
-          >
-            Use example
-          </button>
-          {onToggleMono && (
-            <button
-              onClick={onToggleMono}
-              style={{
-                fontSize: 11,
-                padding: "4px 10px",
-                borderRadius: 999,
-                border: "1px solid #4b5563",
-                background: mono ? "#0ea5e9" : "#020617",
-                color: "#e5e7eb",
-                cursor: "pointer"
-              }}
-              title="Alterna fuente monoespaciada en el editor"
-            >
-              {mono ? "Mono on" : "Mono off"}
-            </button>
-          )}
-        </div>
-
-        {/* el bloque de botones ya se movió arriba */}
 
         <input
           ref={fileInputRef}
@@ -524,23 +172,43 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({
         />
       </div>
 
-      {/* Editor */}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          padding: 12,
+          background: palette.bg
+        }}
+      >
         <Editor
           height="100%"
           defaultLanguage="json"
-          theme="vs-dark"
+          theme={isDark ? "vs-dark" : "vs"}
           value={value}
           onChange={handleEditorChange}
           options={{
             fontSize: fontSize ?? 12,
             fontFamily: mono
               ? "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
-              : "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+              : "'Aptos', 'Segoe UI Variable', 'Segoe UI', sans-serif",
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
             automaticLayout: true,
-            wordWrap: "on"
+            wordWrap: "on",
+            lineNumbersMinChars: 3,
+            padding: {
+              top: 12,
+              bottom: 12
+            }
+          }}
+          wrapperProps={{
+            style: {
+              height: "100%",
+              overflow: "hidden",
+              borderRadius: 18,
+              border: `1px solid ${palette.border}`,
+              boxShadow: "var(--shadow-soft)"
+            }
           }}
         />
       </div>
